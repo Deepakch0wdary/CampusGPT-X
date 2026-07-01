@@ -4,6 +4,22 @@ All notable changes to the **CampusGPT X** system are logged in this file.
 
 ---
 
+## [6.0-Complete] - 2026-07-01
+### Added
+* Complete Faculty Portal and Faculty Dashboard Module including:
+  * **Faculty Profile metadata**: Track employee id, qualification, office location, experience, specializations, office hours, and emergency contact parameters.
+  * **Faculty Dashboard widgets**: Display welcome card, dynamic weekly timetables, subjects/sections count assigned, and pending submissions counts requiring evaluation.
+  * **Classroom Management**: Check student lists belonging to assigned sections.
+  * **Assignment definitions manager**: Create assignments definition sheets, set deadlines, and configure resubmission allowances.
+  * **Quiz scheduler module**: Question bank schemas supporting MCQs, programming, and subjective lists.
+  * **Notes / Resources Archive**: Share/Publish PPT/PDF/DOCX resources linked to courses.
+  * **Leaves request module**: Request sick/casual leaves and track status approvals.
+  * **Attendance Session Generator**: Select Department, Semester, Section, Subject, Date, and Period. Generates a session ID header.
+* Fully interactive React `FacultyDashboard.tsx` view with tab panels and modal submit forms.
+* Broken Access Control Prevention validation checks in the backend protecting class rosters, note uploads, and student grading sheets from unauthorized users.
+
+---
+
 ## [5.0-Complete] - 2026-07-01
 ### Added
 * Complete Student Portal and Student Dashboard Module including:

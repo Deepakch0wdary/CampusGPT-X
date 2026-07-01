@@ -98,6 +98,12 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       { text: 'Student Portal', icon: <SchoolIcon />, path: '/student-dashboard' },
       { text: 'Academics', icon: <SchoolIcon />, path: '/academics' }
     );
+  } else if (user?.role === 'TEACHER') {
+    menuItems.push(
+      { text: 'Overview', icon: <DashboardIcon />, path: '/' },
+      { text: 'Faculty Portal', icon: <SchoolIcon />, path: '/faculty-dashboard' },
+      { text: 'Academics', icon: <SchoolIcon />, path: '/academics' }
+    );
   } else {
     // Default fallback menu
     menuItems.push(

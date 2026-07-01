@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import health, auth, users, sessions, audits, academics, students
+from app.api.v1.endpoints import health, auth, users, sessions, audits, academics, students, faculties
 
 api_router = APIRouter()
 api_router.include_router(health.router, prefix="/health", tags=["System Health"])
@@ -10,6 +10,9 @@ api_router.include_router(audits.router, prefix="/audits", tags=["Audits"])
 
 # Student Portal Router
 api_router.include_router(students.router, prefix="/student", tags=["Student Portal"])
+
+# Faculty Portal Router
+api_router.include_router(faculties.router, prefix="/faculty", tags=["Faculty Portal"])
 
 # Academic Structure Routers
 api_router.include_router(academics.academic_years_router, prefix="/academic-years", tags=["Academic Years"])

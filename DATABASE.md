@@ -9,7 +9,7 @@ This document describes the database design, tables, relations, and optimization
 | Model | Table Name | Purpose | Primary / Unique Keys |
 |---|---|---|---|
 | **User** | `User` | Stores all core user login identity profiles. | `id` (PK), `email` (UQ), `username` (UQ) |
-| **Role** | `Role` | System roles (e.g. MASTER_ADMIN, STUDENT). | `id` (PK), `name` (UQ) |
+| **Role** | `Role` | System roles (e.g. MASTER_ADMIN, TEACHER, STUDENT). | `id` (PK), `name` (UQ) |
 | **Permission** | `Permission` | Action capabilities (e.g. users:read, audits:read). | `id` (PK), `name` (UQ) |
 | **UserPermission** | `UserPermission` | Custom direct RBAC permission bindings. | `id` (PK), `[userId, permissionId]` (UQ) |
 | **UserSession** | `UserSession` | Track active device session logs. | `id` (PK) |
@@ -17,6 +17,7 @@ This document describes the database design, tables, relations, and optimization
 | **LoginHistory** | `LoginHistory` | Audit trail of log attempts and lockdowns. | `id` (PK) |
 | **AuditLog** | `AuditLog` | Track state changes and transactions. | `id` (PK) |
 | **UserProfile** | `UserProfile` | User metadata (phone, bio, address, usn, emergency details). | `id` (PK), `userId` (UQ), `usn` (UQ) |
+| **FacultyProfile** | `FacultyProfile` | Faculty metadata (employee ID, office location, specialization). | `id` (PK), `userId` (UQ), `employeeId` (UQ) |
 | **Department** | `Department` | Academic/Administration Departments. | `id` (PK), `name` (UQ), `code` (UQ) |
 | **Section** | `Section` | Student classroom divisions. | `id` (PK), `code` (UQ) |
 | **Designation** | `Designation` | Staff designation tags (e.g. Professor). | `id` (PK), `name` (UQ), `code` (UQ) |
@@ -29,12 +30,17 @@ This document describes the database design, tables, relations, and optimization
 | **Room** | `Room` | Classrooms or laboratories inside buildings. | `id` (PK), `roomNumber` (UQ) |
 | **Laboratory** | `Laboratory` | Multi-computer department labs. | `id` (PK), `labName` (UQ) |
 | **FacultyAssignment**| `FacultyAssignment` | Map instructors to sections/subjects. | `id` (PK), `[facultyId, subjectId, sectionId, semesterId, academicYearId]` (UQ) |
+| **AssignmentDef** | `AssignmentDef` | Master homework templates published by teachers. | `id` (PK) |
 | **StudentAttendanceSummary** | `StudentAttendanceSummary` | Cumulative subject attendance counts. | `id` (PK), `[userId, subjectId]` (UQ) |
 | **StudentResult** | `StudentResult` | Term grades, Internal/External scores. | `id` (PK), `[userId, subjectId]` (UQ) |
-| **StudentAssignment** | `StudentAssignment` | Homework deadlines and submissions. | `id` (PK) |
+| **StudentAssignment** | `StudentAssignment` | Homework deadlines and submissions. | `id` (PK), `assignmentDefId` (FK) |
 | **StudentCertificate** | `StudentCertificate` | Official study/bonafide document requests. | `id` (PK) |
 | **StudentDocument** | `StudentDocument` | Student digital archive locker. | `id` (PK) |
 | **StudentNotification** | `StudentNotification` | Tailored alert bulletins. | `id` (PK) |
+| **FacultyNotes** | `FacultyNotes` | Uploaded resource links (PPTs, PDFs). | `id` (PK) |
+| **FacultyQuiz** | `FacultyQuiz` | Scheduled question bank tests. | `id` (PK) |
+| **FacultyLeave** | `FacultyLeave` | Leave request approvals tracker. | `id` (PK) |
+| **FacultyNotification** | `FacultyNotification` | Staff-specific bulletin updates. | `id` (PK) |
 
 ---
 
@@ -44,10 +50,13 @@ This document describes the database design, tables, relations, and optimization
    * Deleting a student `User` cascades to delete all their profile, attendance summaries, results, assignments, certificates, documents, and notifications.
    * Deleting a `Subject` cascades to delete all corresponding `StudentAttendanceSummary`, `StudentResult`, and `StudentAssignment` records.
 
+2. **Faculty Cascade Rules**:
+   * Deleting a faculty `User` cascades to delete their `FacultyProfile`, `AssignmentDef`, `FacultyNotes`, `FacultyQuiz`, `FacultyLeave`, and `FacultyNotification` records.
+   * Deleting a `Subject` cascades to delete all corresponding `AssignmentDef`, `FacultyNotes`, and `FacultyQuiz` records.
+
 ---
 
 ## ⚡ Index & Performance Optimizations
 
-* **USN**: Unique index on `UserProfile.usn` ensures single identity profiles.
-* **StudentAttendanceSummary unique combo index**: `[userId, subjectId]` prevents duplicate attendance rows.
-* **StudentResult unique combo index**: `[userId, subjectId]` guarantees single final grade sheets.
+* **Employee ID**: Unique index on `FacultyProfile.employeeId` prevents collision.
+* **FacultyProfile userId**: Unique index on `FacultyProfile.userId` links single profile cards.

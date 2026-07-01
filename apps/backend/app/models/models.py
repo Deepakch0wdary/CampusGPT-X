@@ -87,6 +87,12 @@ class User(Base):
     certificates = relationship("StudentCertificate", back_populates="user", cascade="all, delete-orphan")
     documents = relationship("StudentDocument", back_populates="user", cascade="all, delete-orphan")
     notifications = relationship("StudentNotification", back_populates="user", cascade="all, delete-orphan")
+    facultyProfile = relationship("FacultyProfile", uselist=False, back_populates="user", cascade="all, delete-orphan")
+    assignmentDefs = relationship("AssignmentDef", back_populates="faculty", cascade="all, delete-orphan")
+    facultyNotes = relationship("FacultyNotes", back_populates="faculty", cascade="all, delete-orphan")
+    quizzes = relationship("FacultyQuiz", back_populates="faculty", cascade="all, delete-orphan")
+    leaves = relationship("FacultyLeave", back_populates="faculty", cascade="all, delete-orphan")
+    facultyNotifications = relationship("FacultyNotification", back_populates="faculty", cascade="all, delete-orphan")
 
 class UserProfile(Base):
     __tablename__ = "UserProfile"
@@ -241,6 +247,9 @@ class Subject(Base):
     attendanceSummaries = relationship("StudentAttendanceSummary", back_populates="subject", cascade="all, delete-orphan")
     results = relationship("StudentResult", back_populates="subject", cascade="all, delete-orphan")
     assignments = relationship("StudentAssignment", back_populates="subject", cascade="all, delete-orphan")
+    assignmentDefs = relationship("AssignmentDef", back_populates="subject", cascade="all, delete-orphan")
+    facultyNotes = relationship("FacultyNotes", back_populates="subject", cascade="all, delete-orphan")
+    quizzes = relationship("FacultyQuiz", back_populates="subject", cascade="all, delete-orphan")
 
 class Building(Base):
     __tablename__ = "Building"
@@ -411,11 +420,13 @@ class StudentAssignment(Base):
     submissionUrl = Column(String(191), nullable=True)
     submittedAt = Column(DateTime, nullable=True)
     grade = Column(String(191), nullable=True)
+    assignmentDefId = Column(String(191), ForeignKey("AssignmentDef.id", ondelete="CASCADE"), nullable=True)
     createdAt = Column(DateTime, default=datetime.utcnow)
     updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     user = relationship("User", back_populates="assignments")
     subject = relationship("Subject", back_populates="assignments")
+    assignmentDef = relationship("AssignmentDef", back_populates="studentSubmissions")
 
 class StudentCertificate(Base):
     __tablename__ = "StudentCertificate"
@@ -450,3 +461,92 @@ class StudentNotification(Base):
     createdAt = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="notifications")
+
+class FacultyProfile(Base):
+    __tablename__ = "FacultyProfile"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    userId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), unique=True, nullable=False)
+    employeeId = Column(String(191), unique=True, nullable=False)
+    officeHours = Column(String(191), nullable=True)
+    qualification = Column(String(191), nullable=True)
+    experience = Column(String(191), nullable=True)
+    researchArea = Column(String(191), nullable=True)
+    specialization = Column(String(191), nullable=True)
+    officeLocation = Column(String(191), nullable=True)
+    emergencyContact = Column(String(191), nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = relationship("User", back_populates="facultyProfile")
+
+class AssignmentDef(Base):
+    __tablename__ = "AssignmentDef"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    title = Column(String(191), nullable=False)
+    description = Column(Text, nullable=True)
+    dueDate = Column(DateTime, nullable=False)
+    allowResubmission = Column(Boolean, default=False, nullable=False)
+    attachmentUrl = Column(String(191), nullable=True)
+    subjectId = Column(String(191), ForeignKey("Subject.id", ondelete="CASCADE"), nullable=False)
+    facultyId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    subject = relationship("Subject", back_populates="assignmentDefs")
+    faculty = relationship("User", back_populates="assignmentDefs")
+    studentSubmissions = relationship("StudentAssignment", back_populates="assignmentDef", cascade="all, delete-orphan")
+
+class FacultyNotes(Base):
+    __tablename__ = "FacultyNotes"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    title = Column(String(191), nullable=False)
+    fileUrl = Column(String(191), nullable=False)
+    fileType = Column(String(191), nullable=False)
+    subjectId = Column(String(191), ForeignKey("Subject.id", ondelete="CASCADE"), nullable=False)
+    facultyId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    subject = relationship("Subject", back_populates="facultyNotes")
+    faculty = relationship("User", back_populates="facultyNotes")
+
+class FacultyQuiz(Base):
+    __tablename__ = "FacultyQuiz"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    title = Column(String(191), nullable=False)
+    subjectId = Column(String(191), ForeignKey("Subject.id", ondelete="CASCADE"), nullable=False)
+    facultyId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    questionsJson = Column(Text, nullable=False)
+    status = Column(String(191), default="DRAFT", nullable=False)
+    scheduledAt = Column(DateTime, nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    subject = relationship("Subject", back_populates="quizzes")
+    faculty = relationship("User", back_populates="quizzes")
+
+class FacultyLeave(Base):
+    __tablename__ = "FacultyLeave"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    facultyId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    leaveType = Column(String(191), nullable=False)
+    startDate = Column(DateTime, nullable=False)
+    endDate = Column(DateTime, nullable=False)
+    reason = Column(Text, nullable=False)
+    status = Column(String(191), default="PENDING", nullable=False)
+    requestedAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    faculty = relationship("User", back_populates="leaves")
+
+class FacultyNotification(Base):
+    __tablename__ = "FacultyNotification"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    facultyId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    title = Column(String(191), nullable=False)
+    content = Column(Text, nullable=False)
+    type = Column(String(191), nullable=False)
+    read = Column(Boolean, default=False, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    faculty = relationship("User", back_populates="facultyNotifications")

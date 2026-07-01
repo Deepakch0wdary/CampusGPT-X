@@ -47,6 +47,12 @@ model User {
   certificates        StudentCertificate[]
   documents           StudentDocument[]
   notifications       StudentNotification[]
+  facultyProfile       FacultyProfile?
+  assignmentDefs       AssignmentDef[]
+  facultyNotes         FacultyNotes[]
+  quizzes              FacultyQuiz[]
+  leaves               FacultyLeave[]
+  facultyNotifications FacultyNotification[]
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
 
@@ -267,6 +273,9 @@ model Subject {
   attendanceSummaries StudentAttendanceSummary[]
   results             StudentResult[]
   assignments         StudentAssignment[]
+  assignmentDefs      AssignmentDef[]
+  facultyNotes        FacultyNotes[]
+  quizzes             FacultyQuiz[]
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
 }
@@ -376,20 +385,22 @@ model StudentResult {
 }
 
 model StudentAssignment {
-  id               String    @id @default(uuid())
+  id               String         @id @default(uuid())
   userId           String
-  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   subjectId        String
-  subject          Subject   @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  subject          Subject        @relation(fields: [subjectId], references: [id], onDelete: Cascade)
   title            String
-  description      String?   @db.Text
+  description      String?        @db.Text
   dueDate          DateTime
-  submissionStatus String    @default("PENDING") // PENDING, SUBMITTED, LATE, GRADED
+  submissionStatus String         @default("PENDING") // PENDING, SUBMITTED, LATE, GRADED
   submissionUrl    String?
   submittedAt      DateTime?
   grade            String?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  assignmentDefId  String?
+  assignmentDef    AssignmentDef? @relation(fields: [assignmentDefId], references: [id], onDelete: Cascade)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
 }
 
 model StudentCertificate {
@@ -419,6 +430,89 @@ model StudentNotification {
   title     String
   content   String   @db.Text
   type      String   // ANNOUNCEMENT, EVENT, PLACEMENT, ASSIGNMENT, EXAM, FEE
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model FacultyProfile {
+  id               String   @id @default(uuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  employeeId       String   @unique
+  officeHours      String?
+  qualification    String?
+  experience       String?
+  researchArea     String?
+  specialization   String?
+  officeLocation   String?
+  emergencyContact String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model AssignmentDef {
+  id                String              @id @default(uuid())
+  title             String
+  description       String?             @db.Text
+  dueDate           DateTime
+  allowResubmission Boolean             @default(false)
+  attachmentUrl     String?
+  subjectId         String
+  subject           Subject             @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  facultyId         String
+  faculty           User                @relation(fields: [facultyId], references: [id], onDelete: Cascade)
+  studentSubmissions StudentAssignment[]
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+}
+
+model FacultyNotes {
+  id            String   @id @default(uuid())
+  title         String
+  fileUrl       String
+  fileType      String   // PDF, PPT, DOCX, etc.
+  subjectId     String
+  subject       Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  facultyId     String
+  faculty       User     @relation(fields: [facultyId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model FacultyQuiz {
+  id            String    @id @default(uuid())
+  title         String
+  subjectId     String
+  subject       Subject   @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  facultyId     String
+  faculty       User      @relation(fields: [facultyId], references: [id], onDelete: Cascade)
+  questionsJson String    @db.Text
+  status        String    @default("DRAFT") // DRAFT, PUBLISHED
+  scheduledAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model FacultyLeave {
+  id          String    @id @default(uuid())
+  facultyId   String
+  faculty     User      @relation(fields: [facultyId], references: [id], onDelete: Cascade)
+  leaveType   String    // CASUAL, SICK, EARNED
+  startDate   DateTime
+  endDate     DateTime
+  reason      String    @db.Text
+  status      String    @default("PENDING") // PENDING, APPROVED, REJECTED
+  requestedAt DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model FacultyNotification {
+  id        String   @id @default(uuid())
+  facultyId String
+  faculty   User     @relation(fields: [facultyId], references: [id], onDelete: Cascade)
+  title     String
+  content   String   @db.Text
+  type      String   // ADMIN, DEPT, MEETING, EXAM, ASSIGNMENT
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
 }
