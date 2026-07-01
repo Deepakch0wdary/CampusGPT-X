@@ -33,11 +33,13 @@ CampusGPT X is built as a high-performance monorepo:
    * Responsive interfaces crafted with **Material UI (MUI)**.
    * Day 7 includes the Smart Timetable dashboard view **`TimetableDashboard.tsx`**.
    * Day 8 includes the Attendance Management console view **`AttendanceDashboard.tsx`**.
+   * Day 9 includes the Dynamic QR Attendance dashboard view **`QRAttendanceDashboard.tsx`**.
 
 2. **`apps/backend`**:
    * REST API engine built with **FastAPI**.
    * Day 7 registers the Smart Timetable endpoint handler in **`timetables.py`** to perform CRUD actions and conflict detection checks.
    * Day 8 registers the Attendance Management endpoint handler in **`attendances.py`** to handle session mark lists, auto-recalculations, and defaulters.
+   * Day 9 registers the Dynamic QR Attendance endpoint handler in **`qr_attendances.py`** to perform geofence calculations, token rotation, and device checks.
 
 3. **`prisma`**:
    * Relational database schema manager.

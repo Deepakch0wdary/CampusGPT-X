@@ -4,6 +4,18 @@ All notable changes to the **CampusGPT X** system are logged in this file.
 
 ---
 
+## [9.0-Complete] - 2026-07-01
+### Added
+* Secure Dynamic QR Attendance Module containing:
+  * **QR Sessions management**: Start/Close sessions, bind boundary radius, geolocation parameters, and dynamic rotation intervals (30/45/60s).
+  * **Dynamic rotating validation tokens**: Periodically rotate active QRCode keys to block replay hacks.
+  * **Geofencing validations**: Measure actual distance using the Haversine formula, blocking coordinate scan requests outsideallowed radius values.
+  * **Device checking credentials logging**: Log browser UA, IP addresses, and hardware signatures (Device ID) to block proxy logins.
+  * **Scan history logs database**: Audit scan log results, tracing failed or out-of-bounds attempts.
+* Sleek Material UI `QRAttendanceDashboard.tsx` view presenting dynamic QR matrixes, countdown progress trackers, present count counters, and student scanner forms.
+
+---
+
 ## [8.0-Complete] - 2026-07-01
 ### Added
 * Complete Attendance Management System including:

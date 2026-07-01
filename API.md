@@ -110,3 +110,16 @@ Every endpoint returns a unified JSON envelope:
 
 #### Defaulters
 * `GET /api/v1/attendance/defaulters` - Pull defaulter listings (Below 75%, 65%, 50% benchmarks).
+
+---
+
+### 8. Dynamic QR Attendance Module (New in Day 9)
+
+#### Session Operations
+* `POST /api/v1/qr-attendance/session` - Create QR Session and active countdown code.
+* `GET /api/v1/qr-attendance/session/{id}/code` - Fetch active dynamic access key token. Automatically rotates code on request if expired.
+* `POST /api/v1/qr-attendance/scan` - Students scan key token submitting geolocations coordinates and browser device fingerprints.
+* `POST /api/v1/qr-attendance/session/{id}/close` - Faculty closes active session.
+
+#### Live Status Polling
+* `GET /api/v1/qr-attendance/session/{id}/status` - Live stats detailing Present List, Pending List, and attendance counts.

@@ -48,13 +48,23 @@ This document describes the database design, tables, relations, and optimization
 | **TimetableEntry** | `TimetableEntry` | Grid cell mappings binding teachers/rooms. | `id` (PK) |
 | **SubstituteFaculty** | `SubstituteFaculty` | Track substitutions and swaps history. | `id` (PK) |
 | **TimetableApproval** | `TimetableApproval` | Audit approvals stage workflow logs. | `id` (PK) |
+| **AttendanceSession** | `AttendanceSession` | Classroom attendance sessions. | `id` (PK) |
+| **AttendanceRecord** | `AttendanceRecord` | Mapped student status states (Present, Absent, etc.). | `id` (PK) |
+| **AttendanceCorrection** | `AttendanceCorrection` | Student correction tickets. | `id` (PK) |
+| **AttendanceAudit** | `AttendanceAudit` | Security audit trail of modifications. | `id` (PK) |
+| **DefaulterList** | `DefaulterList` | Lists students with low attendance benchmarks. | `id` (PK) |
+| **QRSession** | `QRSession` | Classroom locations and radius bounds. | `id` (PK), `attendanceSessionId` (UQ) |
+| **QRCode** | `QRCode` | Dynamically changing encryption access keys. | `id` (PK), `codeValue` (UQ) |
+| **QRScanLog** | `QRScanLog` | Scanned check-in attempts history log. | `id` (PK) |
+| **GeoValidation** | `GeoValidation` | Coordinate mapping calculations log. | `id` (PK), `scanLogId` (UQ) |
+| **DeviceValidation** | `DeviceValidation` | Hardware fingerprint identities log. | `id` (PK), `scanLogId` (UQ) |
 
 ---
 
 ## 🔗 Relationships & Cascades
 
 1. **Student Cascade Rules**:
-   * Deleting a student `User` cascades to delete all their profile, attendance summaries, results, assignments, certificates, documents, and notifications.
+   * Deleting a student `User` cascades to delete all their profile, attendance summaries, results, assignments, certificates, documents, notifications, attendance records, correction requests, and QR scan logs.
    * Deleting a `Subject` cascades to delete all corresponding `StudentAttendanceSummary`, `StudentResult`, and `StudentAssignment` records.
 
 2. **Faculty Cascade Rules**:
@@ -66,6 +76,10 @@ This document describes the database design, tables, relations, and optimization
    * Deleting a `TimeSlot` cascades to delete all mapped entries (`TimetableEntry`).
    * Deleting a `Room` or `Laboratory` sets the corresponding grid cell mappings (`roomId`, `labId`) to `NULL`.
 
+4. **Attendance & QR Cascade Rules**:
+   * Deleting an `AttendanceSession` cascades to delete its `AttendanceRecord` items, `AttendanceAudit` lines, and linked `QRSession`.
+   * Deleting a `QRSession` cascades to delete all its rotating `QRCode` records, `QRScanLog` items, `GeoValidation` logs, and `DeviceValidation` parameters.
+
 ---
 
 ## ⚡ Index & Performance Optimizations
@@ -74,3 +88,5 @@ This document describes the database design, tables, relations, and optimization
 * **FacultyProfile userId**: Unique index on `FacultyProfile.userId` links single profile cards.
 * **TimeSlot Bounds**: Indices on `startTime` and `endTime` speed up overlap conflict validation check queries.
 * **Grid Entry Indexing**: Combo indices on `[dayOfWeek, timeSlotId, roomId]` and `[dayOfWeek, timeSlotId, facultyId]` speed up conflict checking lookups.
+* **QR Dynamic Indexes**: Unique key index on `QRCode.codeValue` for rapid access key verification.
+* **Scan log uniqueness**: Unique indexes on `GeoValidation.scanLogId` and `DeviceValidation.scanLogId` for fast join lookups.

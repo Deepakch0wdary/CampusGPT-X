@@ -23,7 +23,8 @@ import {
   ExitToApp as ExitIcon,
   School as SchoolIcon,
   CalendarToday as CalendarTodayIcon,
-  CheckCircle as CheckCircleIcon
+  CheckCircle as CheckCircleIcon,
+  QrCode2 as QrCodeIcon
 } from '@mui/icons-material';
 
 const DRAWER_WIDTH = 260;
@@ -94,7 +95,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       { text: 'Directory', icon: <PeopleIcon />, path: '/users' },
       { text: 'Academics', icon: <SchoolIcon />, path: '/academics' },
       { text: 'Timetables', icon: <CalendarTodayIcon />, path: '/timetable-dashboard' },
-      { text: 'Attendance', icon: <CheckCircleIcon />, path: '/attendance-dashboard' }
+      { text: 'Attendance', icon: <CheckCircleIcon />, path: '/attendance-dashboard' },
+      { text: 'QR Scanner', icon: <QrCodeIcon />, path: '/qr-attendance-dashboard' }
     );
   } else if (user?.role === 'STUDENT') {
     menuItems.push(
@@ -102,7 +104,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       { text: 'Student Portal', icon: <SchoolIcon />, path: '/student-dashboard' },
       { text: 'Academics', icon: <SchoolIcon />, path: '/academics' },
       { text: 'Timetables', icon: <CalendarTodayIcon />, path: '/timetable-dashboard' },
-      { text: 'Attendance', icon: <CheckCircleIcon />, path: '/attendance-dashboard' }
+      { text: 'Attendance', icon: <CheckCircleIcon />, path: '/attendance-dashboard' },
+      { text: 'QR Scanner', icon: <QrCodeIcon />, path: '/qr-attendance-dashboard' }
     );
   } else if (user?.role === 'TEACHER') {
     menuItems.push(
@@ -110,7 +113,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       { text: 'Faculty Portal', icon: <SchoolIcon />, path: '/faculty-dashboard' },
       { text: 'Academics', icon: <SchoolIcon />, path: '/academics' },
       { text: 'Timetables', icon: <CalendarTodayIcon />, path: '/timetable-dashboard' },
-      { text: 'Attendance', icon: <CheckCircleIcon />, path: '/attendance-dashboard' }
+      { text: 'Attendance', icon: <CheckCircleIcon />, path: '/attendance-dashboard' },
+      { text: 'QR Scanner', icon: <QrCodeIcon />, path: '/qr-attendance-dashboard' }
     );
   } else {
     // Default fallback menu

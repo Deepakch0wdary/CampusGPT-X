@@ -102,6 +102,7 @@ class User(Base):
     attendanceCorrections = relationship("AttendanceCorrection", back_populates="student", cascade="all, delete-orphan")
     attendanceAudits = relationship("AttendanceAudit", back_populates="user", cascade="all, delete-orphan")
     defaulters = relationship("DefaulterList", back_populates="student", cascade="all, delete-orphan")
+    qrScanLogs = relationship("QRScanLog", back_populates="student", cascade="all, delete-orphan")
 
 class UserProfile(Base):
     __tablename__ = "UserProfile"
@@ -707,6 +708,7 @@ class AttendanceSession(Base):
     faculty = relationship("User", back_populates="attendanceSessions")
     records = relationship("AttendanceRecord", back_populates="session", cascade="all, delete-orphan")
     audits = relationship("AttendanceAudit", back_populates="session", cascade="all, delete-orphan")
+    qrSession = relationship("QRSession", uselist=False, back_populates="attendanceSession", cascade="all, delete-orphan")
 
 class AttendanceRecord(Base):
     __tablename__ = "AttendanceRecord"
@@ -766,4 +768,69 @@ class DefaulterList(Base):
     subject = relationship("Subject", back_populates="defaulters")
     section = relationship("Section", back_populates="defaulters")
     student = relationship("User", back_populates="defaulters")
+
+class QRSession(Base):
+    __tablename__ = "QRSession"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    attendanceSessionId = Column(String(191), ForeignKey("AttendanceSession.id", ondelete="CASCADE"), unique=True, nullable=False)
+    latitude = Column(Float, nullable=False)
+    longitude = Column(Float, nullable=False)
+    allowedRadius = Column(Float, default=100.0, nullable=False)
+    intervalSeconds = Column(Integer, default=30, nullable=False)
+    status = Column(String(191), default="ACTIVE", nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    attendanceSession = relationship("AttendanceSession", back_populates="qrSession")
+    codes = relationship("QRCode", back_populates="qrSession", cascade="all, delete-orphan")
+    scanLogs = relationship("QRScanLog", back_populates="qrSession", cascade="all, delete-orphan")
+
+class QRCode(Base):
+    __tablename__ = "QRCode"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    qrSessionId = Column(String(191), ForeignKey("QRSession.id", ondelete="CASCADE"), nullable=False)
+    codeValue = Column(String(191), unique=True, nullable=False)
+    expiresAt = Column(DateTime, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    qrSession = relationship("QRSession", back_populates="codes")
+
+class QRScanLog(Base):
+    __tablename__ = "QRScanLog"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    qrSessionId = Column(String(191), ForeignKey("QRSession.id", ondelete="CASCADE"), nullable=False)
+    studentId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    scannedToken = Column(String(191), nullable=False)
+    isSuccess = Column(Boolean, nullable=False)
+    failReason = Column(String(191), nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    qrSession = relationship("QRSession", back_populates="scanLogs")
+    student = relationship("User", back_populates="qrScanLogs")
+    geoValidation = relationship("GeoValidation", uselist=False, back_populates="scanLog", cascade="all, delete-orphan")
+    deviceValidation = relationship("DeviceValidation", uselist=False, back_populates="scanLog", cascade="all, delete-orphan")
+
+class GeoValidation(Base):
+    __tablename__ = "GeoValidation"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    scanLogId = Column(String(191), ForeignKey("QRScanLog.id", ondelete="CASCADE"), unique=True, nullable=False)
+    studentLatitude = Column(Float, nullable=False)
+    studentLongitude = Column(Float, nullable=False)
+    distanceMeters = Column(Float, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    scanLog = relationship("QRScanLog", back_populates="geoValidation")
+
+class DeviceValidation(Base):
+    __tablename__ = "DeviceValidation"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    scanLogId = Column(String(191), ForeignKey("QRScanLog.id", ondelete="CASCADE"), unique=True, nullable=False)
+    deviceId = Column(String(191), nullable=False)
+    browser = Column(String(191), nullable=True)
+    os = Column(String(191), nullable=True)
+    ipAddress = Column(String(191), nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    scanLog = relationship("QRScanLog", back_populates="deviceValidation")
+
 

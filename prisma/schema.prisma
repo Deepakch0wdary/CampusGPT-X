@@ -62,6 +62,7 @@ model User {
   attendanceCorrections        AttendanceCorrection[]
   attendanceAudits             AttendanceAudit[]
   defaulters                   DefaulterList[]
+  qrScanLogs                   QRScanLog[]
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
 
@@ -662,6 +663,7 @@ model AttendanceSession {
   faculty        User               @relation(fields: [facultyId], references: [id], onDelete: Cascade)
   records        AttendanceRecord[]
   audits         AttendanceAudit[]
+  qrSession      QRSession?
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
 
@@ -723,4 +725,63 @@ model DefaulterList {
   percentage Float
   category   String   // BELOW_75, BELOW_65, BELOW_50
   createdAt  DateTime @default(now())
+}
+
+model QRSession {
+  id                  String             @id @default(uuid())
+  attendanceSessionId String             @unique
+  attendanceSession   AttendanceSession  @relation(fields: [attendanceSessionId], references: [id], onDelete: Cascade)
+  latitude            Float
+  longitude           Float
+  allowedRadius       Float              @default(100.0) // allowed radius in meters
+  intervalSeconds     Int                @default(30)
+  status              String             @default("ACTIVE") // ACTIVE, CLOSED
+  codes               QRCode[]
+  scanLogs            QRScanLog[]
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+}
+
+model QRCode {
+  id          String    @id @default(uuid())
+  qrSessionId String
+  qrSession   QRSession @relation(fields: [qrSessionId], references: [id], onDelete: Cascade)
+  codeValue   String    @unique
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+}
+
+model QRScanLog {
+  id               String            @id @default(uuid())
+  qrSessionId      String
+  qrSession        QRSession         @relation(fields: [qrSessionId], references: [id], onDelete: Cascade)
+  studentId        String
+  student          User              @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  scannedToken     String
+  isSuccess        Boolean
+  failReason       String?
+  geoValidation    GeoValidation?
+  deviceValidation DeviceValidation?
+  createdAt        DateTime          @default(now())
+}
+
+model GeoValidation {
+  id               String    @id @default(uuid())
+  scanLogId        String    @unique
+  scanLog          QRScanLog @relation(fields: [scanLogId], references: [id], onDelete: Cascade)
+  studentLatitude  Float
+  studentLongitude Float
+  distanceMeters   Float
+  createdAt        DateTime  @default(now())
+}
+
+model DeviceValidation {
+  id        String    @id @default(uuid())
+  scanLogId String    @unique
+  scanLog   QRScanLog @relation(fields: [scanLogId], references: [id], onDelete: Cascade)
+  deviceId  String
+  browser   String?
+  os        String?
+  ipAddress String?
+  createdAt DateTime  @default(now())
 }
