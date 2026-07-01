@@ -1,6 +1,6 @@
 import uuid
 import enum
-from sqlalchemy import Column, String, Boolean, DateTime, Integer, ForeignKey, Text, UniqueConstraint
+from sqlalchemy import Column, String, Boolean, DateTime, Integer, ForeignKey, Text, UniqueConstraint, Float
 from sqlalchemy.orm import relationship, declarative_base
 from datetime import datetime
 
@@ -81,6 +81,12 @@ class User(Base):
     auditLogs = relationship("AuditLog", back_populates="user", cascade="all, delete-orphan")
     facultyAssignments = relationship("FacultyAssignment", back_populates="faculty", cascade="all, delete-orphan")
     advisedSections = relationship("Section", back_populates="facultyAdvisor", foreign_keys="[Section.facultyAdvisorId]")
+    attendanceSummaries = relationship("StudentAttendanceSummary", back_populates="user", cascade="all, delete-orphan")
+    results = relationship("StudentResult", back_populates="user", cascade="all, delete-orphan")
+    assignments = relationship("StudentAssignment", back_populates="user", cascade="all, delete-orphan")
+    certificates = relationship("StudentCertificate", back_populates="user", cascade="all, delete-orphan")
+    documents = relationship("StudentDocument", back_populates="user", cascade="all, delete-orphan")
+    notifications = relationship("StudentNotification", back_populates="user", cascade="all, delete-orphan")
 
 class UserProfile(Base):
     __tablename__ = "UserProfile"
@@ -91,6 +97,11 @@ class UserProfile(Base):
     address = Column(Text, nullable=True)
     avatarUrl = Column(String(191), nullable=True)
     designationId = Column(String(191), ForeignKey("Designation.id", ondelete="SET NULL"), nullable=True)
+    usn = Column(String(191), unique=True, nullable=True)
+    parentName = Column(String(191), nullable=True)
+    parentPhone = Column(String(191), nullable=True)
+    emergencyContact = Column(String(191), nullable=True)
+    bloodGroup = Column(String(191), nullable=True)
     createdAt = Column(DateTime, default=datetime.utcnow)
     updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -227,6 +238,9 @@ class Subject(Base):
     semester = relationship("Semester", back_populates="subjects")
     course = relationship("Course", back_populates="subjects")
     facultyAssignments = relationship("FacultyAssignment", back_populates="subject", cascade="all, delete-orphan")
+    attendanceSummaries = relationship("StudentAttendanceSummary", back_populates="subject", cascade="all, delete-orphan")
+    results = relationship("StudentResult", back_populates="subject", cascade="all, delete-orphan")
+    assignments = relationship("StudentAssignment", back_populates="subject", cascade="all, delete-orphan")
 
 class Building(Base):
     __tablename__ = "Building"
@@ -350,3 +364,89 @@ class AuditLog(Base):
     createdAt = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="auditLogs")
+
+class StudentAttendanceSummary(Base):
+    __tablename__ = "StudentAttendanceSummary"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    userId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    subjectId = Column(String(191), ForeignKey("Subject.id", ondelete="CASCADE"), nullable=False)
+    totalClasses = Column(Integer, nullable=False, default=0)
+    presentClasses = Column(Integer, nullable=False, default=0)
+    percentage = Column(Float, nullable=False, default=0.0)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (UniqueConstraint("userId", "subjectId", name="StudentAttendanceSummary_userId_subjectId_key"),)
+
+    user = relationship("User", back_populates="attendanceSummaries")
+    subject = relationship("Subject", back_populates="attendanceSummaries")
+
+class StudentResult(Base):
+    __tablename__ = "StudentResult"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    userId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    subjectId = Column(String(191), ForeignKey("Subject.id", ondelete="CASCADE"), nullable=False)
+    semesterNumber = Column(Integer, nullable=False)
+    internalMarks = Column(Integer, nullable=False, default=0)
+    externalMarks = Column(Integer, nullable=False, default=0)
+    grade = Column(String(191), nullable=False)
+    credits = Column(Integer, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (UniqueConstraint("userId", "subjectId", name="StudentResult_userId_subjectId_key"),)
+
+    user = relationship("User", back_populates="results")
+    subject = relationship("Subject", back_populates="results")
+
+class StudentAssignment(Base):
+    __tablename__ = "StudentAssignment"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    userId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    subjectId = Column(String(191), ForeignKey("Subject.id", ondelete="CASCADE"), nullable=False)
+    title = Column(String(191), nullable=False)
+    description = Column(Text, nullable=True)
+    dueDate = Column(DateTime, nullable=False)
+    submissionStatus = Column(String(191), nullable=False, default="PENDING")
+    submissionUrl = Column(String(191), nullable=True)
+    submittedAt = Column(DateTime, nullable=True)
+    grade = Column(String(191), nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = relationship("User", back_populates="assignments")
+    subject = relationship("Subject", back_populates="assignments")
+
+class StudentCertificate(Base):
+    __tablename__ = "StudentCertificate"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    userId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    certificateType = Column(String(191), nullable=False)
+    status = Column(String(191), nullable=False, default="PENDING")
+    documentUrl = Column(String(191), nullable=True)
+    requestedAt = Column(DateTime, default=datetime.utcnow)
+    issuedAt = Column(DateTime, nullable=True)
+
+    user = relationship("User", back_populates="certificates")
+
+class StudentDocument(Base):
+    __tablename__ = "StudentDocument"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    userId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String(191), nullable=False)
+    documentUrl = Column(String(191), nullable=False)
+    uploadedAt = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="documents")
+
+class StudentNotification(Base):
+    __tablename__ = "StudentNotification"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    userId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    title = Column(String(191), nullable=False)
+    content = Column(Text, nullable=False)
+    type = Column(String(191), nullable=False)
+    read = Column(Boolean, default=False, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="notifications")

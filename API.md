@@ -8,9 +8,6 @@ Welcome to the CampusGPT X developer API portal. This document details the endpo
 
 All API calls (except `/health` and `/auth/login`) require a valid JSON Web Token (JWT) provided in either the `Authorization` header or as an HTTP-only cookie.
 
-* **Header Example**: `Authorization: Bearer <JWT_ACCESS_TOKEN>`
-* **Cookie Option**: Secure HTTP-only cookie named `access_token`
-
 ---
 
 ## 📊 Standard API Response Envelope
@@ -29,35 +26,17 @@ Every endpoint returns a unified JSON envelope:
 }
 ```
 
-### Failed Operation
-```json
-{
-  "success": false,
-  "message": "Human-readable error details",
-  "data": null,
-  "errors": {
-    "code": "ERROR_CODE",
-    "details": {
-      "field": "location",
-      "issue": "specific reason"
-    }
-  }
-}
-```
-
 ---
 
 ## 🚀 API Endpoint Reference
 
 ### 1. System Health
 * **Route**: `GET /api/v1/health`
-* **Auth**: Public
 
 ---
 
 ### 2. Authentication
 * `POST /api/v1/auth/login` - User authentication and JWT distribution.
-* `POST /api/v1/auth/refresh` - Rotate access tokens using active refresh signatures.
 * `POST /api/v1/auth/change-password` - Set new password keys for authenticated accounts.
 
 ---
@@ -68,49 +47,33 @@ Every endpoint returns a unified JSON envelope:
 
 ---
 
-### 4. Academic Structure Module (New in Day 4)
+### 4. Student Portal Module (New in Day 5)
 
-#### Academic Years
-* `POST /api/v1/academic-years` - Create a calendar year.
-* `GET /api/v1/academic-years?search=&page=1&limit=10` - List years.
-* `GET /api/v1/academic-years/{id}` - Fetch single year.
-* `PUT /api/v1/academic-years/{id}` - Modify properties.
-* `DELETE /api/v1/academic-years/{id}` - Purge record.
+#### Student Dashboard
+* `GET /api/v1/student/dashboard` - Get overall attendance percentage, CGPA, completed credits, upcoming classes, timetables, and AI study recommendations.
+* Optional param: `student_id` (Admins and teachers only).
 
-#### Departments
-* `POST /api/v1/departments` - Register division.
-* `GET /api/v1/departments` - List departments.
-* `DELETE /api/v1/departments/{id}` - Purge department (guarded against active course mappings).
+#### Student Profile
+* `GET /api/v1/student/profile` - Fetch current user profile.
+* `PUT /api/v1/student/profile` - Update phone, emergency contact, blood group, parent details.
 
-#### Programs & Courses
-* `POST /api/v1/programs` - Define curriculum paths (B.Tech, MBA).
-* `POST /api/v1/courses` - Create course offerings (e.g. EE101).
+#### Attendance
+* `GET /api/v1/student/attendance` - Subject-wise class counts and percentages.
 
-#### Semesters & Subjects
-* `POST /api/v1/semesters` - Setup semester term maps.
-* `POST /api/v1/subjects` - Define syllabus details.
+#### Results
+* `GET /api/v1/student/results` - Grades, credits weight, internal and external marks list.
 
-#### Sections
-* `POST /api/v1/sections` - Add section clusters.
+#### Assignments
+* `GET /api/v1/student/assignments` - Homework deadlines.
+* `POST /api/v1/student/assignments/{id}/submit` - Submit link and update status.
 
-#### Building & Room Infrastructure
-* `POST /api/v1/buildings` - Register buildings.
-* `POST /api/v1/rooms` - Assign classroom and laboratory locations.
+#### Certificates
+* `GET /api/v1/student/certificates` - Request listing.
+* `POST /api/v1/student/certificates/request` - Triggers bonafide, study certificate requests.
 
-#### Laboratories
-* `POST /api/v1/laboratories` - Setup multi-station research labs.
+#### Documents
+* `GET /api/v1/student/documents` - Access digital lockers (Student IDs).
 
-#### Faculty Timetable Assignments
-* `POST /api/v1/faculty-assignments` - Assign faculty advisors/teachers to class divisions.
-* **Payload**:
-```json
-{
-  "departmentId": "dept-uuid",
-  "subjectId": "subj-uuid",
-  "facultyId": "user-uuid",
-  "sectionId": "sect-uuid",
-  "semesterId": "semester-uuid",
-  "academicYearId": "academicyear-uuid"
-}
-```
-* `DELETE /api/v1/faculty-assignments/{id}` - Remove instruction mappings.
+#### Notifications
+* `GET /api/v1/student/notifications` - Announcements bulletins.
+* `PUT /api/v1/student/notifications/{id}/read` - Mark notification as read.

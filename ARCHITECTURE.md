@@ -31,21 +31,19 @@ CampusGPT X is built as a high-performance monorepo:
 1. **`apps/frontend`**:
    * Single Page Application (SPA) utilizing **React 18**, **Vite**, **TypeScript**, and **Tailwind CSS**.
    * Responsive interfaces crafted with **Material UI (MUI)**.
-   * Day 4 includes the interactive admin and teacher central navigation pane **`AcademicDashboard.tsx`**.
+   * Day 5 includes the Student Portal central control dashboard **`StudentDashboard.tsx`**.
 
 2. **`apps/backend`**:
    * REST API engine built with **FastAPI**.
-   * Day 4 registers 11 new REST routers under **`academics.py`** to perform CRUD actions on structural elements.
-   * Explicit dependency injection of transactional sessions using `get_db` dependencies.
+   * Day 5 registers the Student Portal endpoint handler in **`students.py`** to perform CRUD actions on student-related records.
 
 3. **`prisma`**:
-   * Relational database schema manager. Maps data schemas, unique constraints, index tags, and cascading rules.
+   * Relational database schema manager.
 
 ---
 
 ## 🛡️ Security Architecture
 
-* **Cryptography**: Salted password encryption using the industry-standard **bcrypt** library.
-* **Session Management**: Dual support for JWTs inside Authorization Bearer headers (typically for external/automated requests) and secure HttpOnly cookies (to prevent XSS breaches).
-* **Token Rotation**: Spawns short-lived access tokens (15 mins) and long-lived refresh tokens (7 days). Refreshes invoke rotation, revoking old signatures.
-* **Audit Logging**: Saves all core state actions (e.g. login failures, user creation, metadata imports, academic record modifications) in the `AuditLog` database table.
+* **Broken Access Control Prevention (BACP)**:
+  Every API endpoint in `students.py` reads user parameters directly from the decoded JWT token context. If the user possesses the `STUDENT` role, the backend forces `userId` queries to match `current_user.id`, ignoring arbitrary client parameters. This prevents ID enumeration attacks.
+* **Audit Logging**: Saves all core state actions in the `AuditLog` database table.

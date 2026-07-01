@@ -92,6 +92,12 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       { text: 'Directory', icon: <PeopleIcon />, path: '/users' },
       { text: 'Academics', icon: <SchoolIcon />, path: '/academics' }
     );
+  } else if (user?.role === 'STUDENT') {
+    menuItems.push(
+      { text: 'Overview', icon: <DashboardIcon />, path: '/' },
+      { text: 'Student Portal', icon: <SchoolIcon />, path: '/student-dashboard' },
+      { text: 'Academics', icon: <SchoolIcon />, path: '/academics' }
+    );
   } else {
     // Default fallback menu
     menuItems.push(

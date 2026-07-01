@@ -16,7 +16,7 @@ This document describes the database design, tables, relations, and optimization
 | **RefreshToken** | `RefreshToken` | Retain active JWT refresh tokens. | `id` (PK), `token` (UQ) |
 | **LoginHistory** | `LoginHistory` | Audit trail of log attempts and lockdowns. | `id` (PK) |
 | **AuditLog** | `AuditLog` | Track state changes and transactions. | `id` (PK) |
-| **UserProfile** | `UserProfile` | User metadata (phone, bio, address). | `id` (PK), `userId` (UQ) |
+| **UserProfile** | `UserProfile` | User metadata (phone, bio, address, usn, emergency details). | `id` (PK), `userId` (UQ), `usn` (UQ) |
 | **Department** | `Department` | Academic/Administration Departments. | `id` (PK), `name` (UQ), `code` (UQ) |
 | **Section** | `Section` | Student classroom divisions. | `id` (PK), `code` (UQ) |
 | **Designation** | `Designation` | Staff designation tags (e.g. Professor). | `id` (PK), `name` (UQ), `code` (UQ) |
@@ -29,34 +29,25 @@ This document describes the database design, tables, relations, and optimization
 | **Room** | `Room` | Classrooms or laboratories inside buildings. | `id` (PK), `roomNumber` (UQ) |
 | **Laboratory** | `Laboratory` | Multi-computer department labs. | `id` (PK), `labName` (UQ) |
 | **FacultyAssignment**| `FacultyAssignment` | Map instructors to sections/subjects. | `id` (PK), `[facultyId, subjectId, sectionId, semesterId, academicYearId]` (UQ) |
+| **StudentAttendanceSummary** | `StudentAttendanceSummary` | Cumulative subject attendance counts. | `id` (PK), `[userId, subjectId]` (UQ) |
+| **StudentResult** | `StudentResult` | Term grades, Internal/External scores. | `id` (PK), `[userId, subjectId]` (UQ) |
+| **StudentAssignment** | `StudentAssignment` | Homework deadlines and submissions. | `id` (PK) |
+| **StudentCertificate** | `StudentCertificate` | Official study/bonafide document requests. | `id` (PK) |
+| **StudentDocument** | `StudentDocument` | Student digital archive locker. | `id` (PK) |
+| **StudentNotification** | `StudentNotification` | Tailored alert bulletins. | `id` (PK) |
 
 ---
 
 ## 🔗 Relationships & Cascades
 
-1. **User ↔ Role**:
-   * One-to-many relationship. A user must belong to exactly one role.
-   * `User.roleId` references `Role.id`.
-2. **User ↔ Department**:
-   * Optional relationship.
-   * `User.departmentId` references `Department.id` with `onDelete: SetNull`.
-3. **User ↔ Section**:
-   * Optional relationship.
-   * `User.sectionId` references `Section.id` with `onDelete: SetNull`.
-4. **User ↔ UserProfile**:
-   * One-to-one relationship.
-   * `UserProfile.userId` references `User.id` with `onDelete: Cascade`.
-5. **Academic Structure Cascading Hierarchy**:
-   * Deleting a `Department` cascades to delete all its `Program` mappings.
-   * Deleting a `Program` cascades to delete all its `Course` and `Semester` divisions.
-   * Deleting a `Semester` cascades to delete all its `Section` and `Subject` entries.
-   * Deleting a `Building` cascades to delete all its nested `Room` locations.
-6. **FacultyAssignment Constraints**:
-   * Referencing department, subjects, sections, and semesters features `onDelete: Cascade` rules to prevent orphaned schedule records.
+1. **Student Cascade Rules**:
+   * Deleting a student `User` cascades to delete all their profile, attendance summaries, results, assignments, certificates, documents, and notifications.
+   * Deleting a `Subject` cascades to delete all corresponding `StudentAttendanceSummary`, `StudentResult`, and `StudentAssignment` records.
 
 ---
 
 ## ⚡ Index & Performance Optimizations
 
-* **Email & Username**: Configured indexes on `User.email` and `User.username` to optimize login credentials lookup.
-* **FacultyAssignment Unique Combo Index**: Unique index on `[facultyId, subjectId, sectionId, semesterId, academicYearId]` speeds up timetable conflict checks and enforces mapping integrity.
+* **USN**: Unique index on `UserProfile.usn` ensures single identity profiles.
+* **StudentAttendanceSummary unique combo index**: `[userId, subjectId]` prevents duplicate attendance rows.
+* **StudentResult unique combo index**: `[userId, subjectId]` guarantees single final grade sheets.

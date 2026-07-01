@@ -41,6 +41,12 @@ model User {
   auditLogs           AuditLog[]
   facultyAssignments  FacultyAssignment[]
   advisedSections     Section[]        @relation(name: "FacultyAdvisor")
+  attendanceSummaries StudentAttendanceSummary[]
+  results             StudentResult[]
+  assignments         StudentAssignment[]
+  certificates        StudentCertificate[]
+  documents           StudentDocument[]
+  notifications       StudentNotification[]
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
 
@@ -120,17 +126,22 @@ model AuditLog {
 }
 
 model UserProfile {
-  id            String       @id @default(uuid())
-  userId        String       @unique
-  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  phoneNumber   String?
-  bio           String?      @db.Text
-  address       String?      @db.Text
-  avatarUrl     String?
-  designationId String?
-  designation   Designation? @relation(fields: [designationId], references: [id], onDelete: SetNull)
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  id               String       @id @default(uuid())
+  userId           String       @unique
+  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  phoneNumber      String?
+  bio              String?      @db.Text
+  address          String?      @db.Text
+  avatarUrl        String?
+  designationId    String?
+  designation      Designation? @relation(fields: [designationId], references: [id], onDelete: SetNull)
+  usn              String?      @unique
+  parentName       String?
+  parentPhone      String?
+  emergencyContact String?
+  bloodGroup       String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
 }
 
 model Department {
@@ -246,15 +257,18 @@ model Subject {
   labHours           Int                 @default(0)
   elective           Boolean             @default(false)
   mandatory          Boolean             @default(true)
-  departmentId       String
-  department         Department          @relation(fields: [departmentId], references: [id], onDelete: Cascade)
-  semesterId         String
-  semester           Semester            @relation(fields: [semesterId], references: [id], onDelete: Cascade)
-  courseId           String
-  course             Course              @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  facultyAssignments FacultyAssignment[]
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
+  departmentId        String
+  department          Department          @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  semesterId          String
+  semester            Semester            @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  courseId            String
+  course              Course              @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  facultyAssignments  FacultyAssignment[]
+  attendanceSummaries StudentAttendanceSummary[]
+  results             StudentResult[]
+  assignments         StudentAssignment[]
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
 }
 
 model Building {
@@ -327,4 +341,84 @@ model Designation {
   userProfiles UserProfile[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
+}
+
+model StudentAttendanceSummary {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subjectId      String
+  subject        Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  totalClasses   Int
+  presentClasses Int
+  percentage     Float
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([userId, subjectId])
+}
+
+model StudentResult {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subjectId      String
+  subject        Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  semesterNumber Int
+  internalMarks  Int
+  externalMarks  Int
+  grade          String
+  credits        Int
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([userId, subjectId])
+}
+
+model StudentAssignment {
+  id               String    @id @default(uuid())
+  userId           String
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subjectId        String
+  subject          Subject   @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  title            String
+  description      String?   @db.Text
+  dueDate          DateTime
+  submissionStatus String    @default("PENDING") // PENDING, SUBMITTED, LATE, GRADED
+  submissionUrl    String?
+  submittedAt      DateTime?
+  grade            String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+model StudentCertificate {
+  id              String    @id @default(uuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  certificateType String    // BONAFIDE, STUDY, TRANSFER, FEE_RECEIPT
+  status          String    @default("PENDING") // PENDING, APPROVED, REJECTED
+  documentUrl     String?
+  requestedAt     DateTime  @default(now())
+  issuedAt        DateTime?
+}
+
+model StudentDocument {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String   // ID Card, Admission Letter, etc.
+  documentUrl String
+  uploadedAt  DateTime @default(now())
+}
+
+model StudentNotification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  content   String   @db.Text
+  type      String   // ANNOUNCEMENT, EVENT, PLACEMENT, ASSIGNMENT, EXAM, FEE
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
 }
