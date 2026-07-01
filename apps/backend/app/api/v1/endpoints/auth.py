@@ -8,6 +8,7 @@ from app.core.dependencies import get_db
 from app.core.security import verify_password, get_password_hash, create_access_token, create_refresh_token, decode_token
 from app.core.auth_middleware import get_current_user
 from app.models.models import User, RefreshToken, UserSession, LoginHistory, AuditLog
+from app.core.responses import make_response
 
 router = APIRouter()
 
@@ -140,8 +141,7 @@ def login(request: Request, payload: LoginRequest, response: Response, db: Sessi
         max_age=900  # 15 mins
     )
 
-    return {
-        "success": True,
+    login_data = {
         "access_token": access_token,
         "refresh_token": refresh_token_str,
         "must_change_password": user.mustChangePassword,
@@ -153,6 +153,12 @@ def login(request: Request, payload: LoginRequest, response: Response, db: Sessi
             "role": user.role.name
         }
     }
+    return make_response(
+        success=True,
+        message="Login successful.",
+        data=login_data,
+        extra_compat=login_data
+    )
 
 @router.post("/logout")
 def logout(response: Response, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
@@ -169,7 +175,11 @@ def logout(response: Response, current_user: User = Depends(get_current_user), d
 
     # Clear authorization cookies
     response.delete_cookie("access_token")
-    return {"success": True, "message": "Successfully logged out."}
+    return make_response(
+        success=True,
+        message="Successfully logged out.",
+        data={}
+    )
 
 @router.post("/refresh")
 def refresh(request: Request, response: Response, db: Session = Depends(get_db)):
@@ -230,11 +240,16 @@ def refresh(request: Request, response: Response, db: Session = Depends(get_db))
         max_age=900
     )
 
-    return {
-        "success": True,
+    refresh_data = {
         "access_token": new_access,
         "refresh_token": new_refresh
     }
+    return make_response(
+        success=True,
+        message="Token refreshed successfully.",
+        data=refresh_data,
+        extra_compat=refresh_data
+    )
 
 @router.post("/forgot-password")
 def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db)):
@@ -242,7 +257,11 @@ def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db
     user = db.query(User).filter_by(email=payload.email).first()
     if not user:
         # Avoid user enumeration attacks: return success anyway
-        return {"success": True, "message": "Verification instructions emitted if account exists."}
+        return make_response(
+            success=True,
+            message="Verification instructions emitted if account exists.",
+            data={}
+        )
 
     # Simulate token distribution (mock email flow)
     reset_token = str(uuid.uuid4())
@@ -258,11 +277,15 @@ def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db
 
     print(f"\n[MOCK EMAIL SYSTEM] To reset user password for {user.email}, use token: {reset_token}\n")
 
-    return {
-        "success": True, 
-        "message": "Verification instructions emitted if account exists.",
-        "mock_token": reset_token  # Returned for easy testing
+    token_data = {
+        "mock_token": reset_token
     }
+    return make_response(
+        success=True,
+        message="Verification instructions emitted if account exists.",
+        data=token_data,
+        extra_compat=token_data
+    )
 
 @router.post("/reset-password")
 def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db)):
@@ -304,7 +327,11 @@ def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db))
     db.add(new_audit)
     db.commit()
 
-    return {"success": True, "message": "Password changed successfully."}
+    return make_response(
+        success=True,
+        message="Password changed successfully.",
+        data={}
+    )
 
 @router.post("/change-password")
 def change_password(payload: ChangePasswordRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
@@ -322,4 +349,8 @@ def change_password(payload: ChangePasswordRequest, current_user: User = Depends
     db.add(audit)
     db.commit()
 
-    return {"success": True, "message": "Password updated successfully."}
+    return make_response(
+        success=True,
+        message="Password updated successfully.",
+        data={}
+    )

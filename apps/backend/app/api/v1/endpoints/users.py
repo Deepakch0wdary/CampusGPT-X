@@ -16,6 +16,7 @@ from app.core.rbac_middleware import PermissionChecker
 from app.core.auth_middleware import get_current_user_no_password_force
 from app.models.models import User, Role, Permission, UserPermission, Department, Section, Designation, UserProfile, AuditLog, UserStatus
 from app.core.security import get_password_hash
+from app.core.responses import make_response
 
 router = APIRouter()
 
@@ -120,25 +121,31 @@ def list_users(
     offset = (page - 1) * limit
     users = query.offset(offset).limit(limit).all()
 
-    return {
-        "success": True,
-        "users": [
-            {
-                "id": u.id,
-                "email": u.email,
-                "username": u.username,
-                "name": u.name,
-                "role": u.role.name,
-                "status": u.status,
-                "department": u.department.name if u.department else None,
-                "section": u.section.name if u.section else None,
-                "createdAt": u.createdAt
-            } for u in users
-        ],
+    users_list = [
+        {
+            "id": u.id,
+            "email": u.email,
+            "username": u.username,
+            "name": u.name,
+            "role": u.role.name,
+            "status": u.status,
+            "department": u.department.name if u.department else None,
+            "section": u.section.name if u.section else None,
+            "createdAt": u.createdAt
+        } for u in users
+    ]
+    res_data = {
+        "users": users_list,
         "total": total,
         "page": page,
         "pages": (total + limit - 1) // limit
     }
+    return make_response(
+        success=True,
+        message="Users listed successfully.",
+        data=res_data,
+        extra_compat=res_data
+    )
 
 @router.post("", dependencies=[Depends(PermissionChecker("users:create"))])
 def create_user(payload: UserCreateRequest, current_user: User = Depends(get_current_user_no_password_force), db: Session = Depends(get_db)):
@@ -213,8 +220,7 @@ def create_user(payload: UserCreateRequest, current_user: User = Depends(get_cur
 
     print(f"\n[MOCK EMAIL SERVICE] To: {payload.email}\nUsername: {username}\nTemp Password: {temp_pwd}\n")
 
-    return {
-        "success": True,
+    user_data = {
         "user": {
             "id": user_id,
             "email": user.email,
@@ -224,6 +230,12 @@ def create_user(payload: UserCreateRequest, current_user: User = Depends(get_cur
         },
         "temporary_password": temp_pwd
     }
+    return make_response(
+        success=True,
+        message="User created successfully.",
+        data=user_data,
+        extra_compat=user_data
+    )
 
 @router.get("/{id}", dependencies=[Depends(PermissionChecker("users:read"))])
 def get_user(id: str, db: Session = Depends(get_db)):
@@ -235,8 +247,7 @@ def get_user(id: str, db: Session = Depends(get_db)):
     # Load custom permission list
     perms = [up.permission.name for up in user.userPermissions]
 
-    return {
-        "success": True,
+    user_data = {
         "user": {
             "id": user.id,
             "email": user.email,
@@ -261,6 +272,12 @@ def get_user(id: str, db: Session = Depends(get_db)):
             "permissions": perms
         }
     }
+    return make_response(
+        success=True,
+        message="User retrieved successfully.",
+        data=user_data,
+        extra_compat=user_data
+    )
 
 @router.put("/{id}", dependencies=[Depends(PermissionChecker("users:update"))])
 def update_user(id: str, payload: UserUpdateRequest, current_user: User = Depends(get_current_user_no_password_force), db: Session = Depends(get_db)):
@@ -317,7 +334,11 @@ def update_user(id: str, payload: UserUpdateRequest, current_user: User = Depend
     db.add(audit)
     db.commit()
 
-    return {"success": True, "message": "User updated successfully."}
+    return make_response(
+        success=True,
+        message="User updated successfully.",
+        data={}
+    )
 
 @router.delete("/{id}", dependencies=[Depends(PermissionChecker("users:delete"))])
 def delete_user(id: str, current_user: User = Depends(get_current_user_no_password_force), db: Session = Depends(get_db)):
@@ -344,7 +365,11 @@ def delete_user(id: str, current_user: User = Depends(get_current_user_no_passwo
     db.add(audit)
     db.commit()
 
-    return {"success": True, "message": "User account successfully purged."}
+    return make_response(
+        success=True,
+        message="User account successfully purged.",
+        data={}
+    )
 
 @router.patch("/status", dependencies=[Depends(PermissionChecker("users:update"))])
 def update_status(payload: StatusUpdateRequest, current_user: User = Depends(get_current_user_no_password_force), db: Session = Depends(get_db)):
@@ -376,7 +401,11 @@ def update_status(payload: StatusUpdateRequest, current_user: User = Depends(get
     db.add(audit)
     db.commit()
 
-    return {"success": True, "message": f"Updated status of {updated_count} accounts successfully."}
+    return make_response(
+        success=True,
+        message=f"Updated status of {updated_count} accounts successfully.",
+        data={}
+    )
 
 @router.post("/import", dependencies=[Depends(PermissionChecker("users:create"))])
 async def import_users(file: UploadFile = File(...), current_user: User = Depends(get_current_user_no_password_force), db: Session = Depends(get_db)):
@@ -522,11 +551,16 @@ async def import_users(file: UploadFile = File(...), current_user: User = Depend
     db.add(audit)
     db.commit()
 
-    return {
-        "success": True,
+    import_data = {
         "imported": imported_count,
         "errors": errors
     }
+    return make_response(
+        success=True,
+        message=f"Import completed. Imported: {imported_count}.",
+        data=import_data,
+        extra_compat=import_data
+    )
 
 @router.get("/export/xlsx", dependencies=[Depends(PermissionChecker("users:read"))])
 def export_users(db: Session = Depends(get_db)):

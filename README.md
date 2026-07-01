@@ -161,4 +161,15 @@ Run Python integration and health tests locally:
 ```bash
 python -m pytest tests/
 ```
-These tests utilize a mock database session connection overrides, meaning you do not need to run MySQL to validate API endpoint routers!
+These tests utilize mock database session connection overrides, meaning you do not need to run MySQL to validate API endpoint routers!
+
+---
+
+## 📖 System Documentation
+
+For detailed guides and deep dives:
+* [API.md](file:///c:/Users/DELL/OneDrive/Desktop/CampusGPT/API.md) — Endpoint structures, headers, payloads, and examples.
+* [DATABASE.md](file:///c:/Users/DELL/OneDrive/Desktop/CampusGPT/DATABASE.md) — Schema definitions, keys, and cascades.
+* [ARCHITECTURE.md](file:///c:/Users/DELL/OneDrive/Desktop/CampusGPT/ARCHITECTURE.md) — Multi-tier micro-services diagrams and design choices.
+* [CHANGELOG.md](file:///c:/Users/DELL/OneDrive/Desktop/CampusGPT/CHANGELOG.md) — Complete release milestones tracking.
+

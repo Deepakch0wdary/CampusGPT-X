@@ -43,6 +43,12 @@ def register_error_handlers(app: FastAPI) -> None:
             status_code=exc.status_code,
             content={
                 "success": False,
+                "message": exc.message,
+                "data": None,
+                "errors": {
+                    "code": exc.code,
+                    "details": exc.details
+                },
                 "error": {
                     "code": exc.code,
                     "message": exc.message,
@@ -58,6 +64,12 @@ def register_error_handlers(app: FastAPI) -> None:
             status_code=exc.status_code,
             content={
                 "success": False,
+                "message": exc.detail,
+                "data": None,
+                "errors": {
+                    "code": f"HTTP_{exc.status_code}",
+                    "details": {}
+                },
                 "error": {
                     "code": f"HTTP_{exc.status_code}",
                     "message": exc.detail,
@@ -80,6 +92,12 @@ def register_error_handlers(app: FastAPI) -> None:
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             content={
                 "success": False,
+                "message": "Invalid request payload schema",
+                "data": None,
+                "errors": {
+                    "code": "REQUEST_VALIDATION_FAILED",
+                    "details": {"errors": formatted_errors}
+                },
                 "error": {
                     "code": "REQUEST_VALIDATION_FAILED",
                     "message": "Invalid request payload schema",
@@ -95,6 +113,12 @@ def register_error_handlers(app: FastAPI) -> None:
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={
                 "success": False,
+                "message": "An unexpected system error occurred.",
+                "data": None,
+                "errors": {
+                    "code": "INTERNAL_SERVER_ERROR",
+                    "details": {}
+                },
                 "error": {
                     "code": "INTERNAL_SERVER_ERROR",
                     "message": "An unexpected system error occurred.",

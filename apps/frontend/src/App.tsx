@@ -11,6 +11,9 @@ import ChangePassword from './pages/ChangePassword';
 import UserDashboard from './pages/UserDashboard';
 import UserDetails from './pages/UserDetails';
 import ImportUsers from './pages/ImportUsers';
+import NotFound from './pages/NotFound';
+import Forbidden from './pages/Forbidden';
+import ServerError from './pages/ServerError';
 
 // Helper validators for local session tracking
 const isAuthenticated = () => !!localStorage.getItem('access_token');
@@ -105,8 +108,9 @@ const App: React.FC = () => {
               </AdminRoute>
             } />
 
-            {/* Catch All Redirect */}
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="/403" element={<Forbidden />} />
+            <Route path="/500" element={<ServerError />} />
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </Layout>
       </BrowserRouter>

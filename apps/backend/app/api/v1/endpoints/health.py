@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from app.core.dependencies import get_db
+from app.core.responses import make_response
 import time
 
 router = APIRouter()
@@ -25,7 +26,7 @@ def check_health(db: Session = Depends(get_db)):
     api_latency_ms = round((time.time() - start_time) * 1000, 2)
     overall_status = "healthy" if db_status == "healthy" else "degraded"
 
-    return {
+    health_data = {
         "status": overall_status,
         "timestamp": time.time(),
         "api": {
@@ -37,3 +38,10 @@ def check_health(db: Session = Depends(get_db)):
             "latency_ms": db_latency_ms
         }
     }
+    return make_response(
+        success=True,
+        message="System health status.",
+        data=health_data,
+        extra_compat=health_data
+    )
+
