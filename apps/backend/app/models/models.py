@@ -97,6 +97,11 @@ class User(Base):
     substituteRequestsOriginal = relationship("SubstituteFaculty", foreign_keys="[SubstituteFaculty.originalFacultyId]", back_populates="originalFaculty", cascade="all, delete-orphan")
     substituteRequestsSubstitute = relationship("SubstituteFaculty", foreign_keys="[SubstituteFaculty.substituteFacultyId]", back_populates="substituteFaculty", cascade="all, delete-orphan")
     timetableApprovals = relationship("TimetableApproval", back_populates="user", cascade="all, delete-orphan")
+    attendanceSessions = relationship("AttendanceSession", back_populates="faculty", cascade="all, delete-orphan")
+    attendanceRecords = relationship("AttendanceRecord", back_populates="student", cascade="all, delete-orphan")
+    attendanceCorrections = relationship("AttendanceCorrection", back_populates="student", cascade="all, delete-orphan")
+    attendanceAudits = relationship("AttendanceAudit", back_populates="user", cascade="all, delete-orphan")
+    defaulters = relationship("DefaulterList", back_populates="student", cascade="all, delete-orphan")
 
 class UserProfile(Base):
     __tablename__ = "UserProfile"
@@ -140,6 +145,7 @@ class Department(Base):
     rooms = relationship("Room", back_populates="department", cascade="all, delete-orphan")
     laboratories = relationship("Laboratory", back_populates="department", cascade="all, delete-orphan")
     facultyAssignments = relationship("FacultyAssignment", back_populates="department", cascade="all, delete-orphan")
+    attendanceSessions = relationship("AttendanceSession", back_populates="department", cascade="all, delete-orphan")
 
 class Section(Base):
     __tablename__ = "Section"
@@ -162,6 +168,8 @@ class Section(Base):
     users = relationship("User", back_populates="section", foreign_keys=[User.sectionId])
     facultyAssignments = relationship("FacultyAssignment", back_populates="section", cascade="all, delete-orphan")
     timetables = relationship("Timetable", back_populates="section", cascade="all, delete-orphan")
+    attendanceSessions = relationship("AttendanceSession", back_populates="section", cascade="all, delete-orphan")
+    defaulters = relationship("DefaulterList", back_populates="section", cascade="all, delete-orphan")
 
 class AcademicYear(Base):
     __tablename__ = "AcademicYear"
@@ -179,6 +187,7 @@ class AcademicYear(Base):
     facultyAssignments = relationship("FacultyAssignment", back_populates="academicYear", cascade="all, delete-orphan")
     calendars = relationship("AcademicCalendar", back_populates="academicYear", cascade="all, delete-orphan")
     timetables = relationship("Timetable", back_populates="academicYear", cascade="all, delete-orphan")
+    attendanceSessions = relationship("AttendanceSession", back_populates="academicYear", cascade="all, delete-orphan")
 
 class Program(Base):
     __tablename__ = "Program"
@@ -194,6 +203,7 @@ class Program(Base):
     courses = relationship("Course", back_populates="program", cascade="all, delete-orphan")
     sections = relationship("Section", back_populates="program", cascade="all, delete-orphan")
     semesters = relationship("Semester", back_populates="program", cascade="all, delete-orphan")
+    attendanceSessions = relationship("AttendanceSession", back_populates="program", cascade="all, delete-orphan")
 
 class Course(Base):
     __tablename__ = "Course"
@@ -231,6 +241,7 @@ class Semester(Base):
     sections = relationship("Section", back_populates="semester", cascade="all, delete-orphan")
     facultyAssignments = relationship("FacultyAssignment", back_populates="semester", cascade="all, delete-orphan")
     timetables = relationship("Timetable", back_populates="semester", cascade="all, delete-orphan")
+    attendanceSessions = relationship("AttendanceSession", back_populates="semester", cascade="all, delete-orphan")
 
 class Subject(Base):
     __tablename__ = "Subject"
@@ -259,6 +270,8 @@ class Subject(Base):
     facultyNotes = relationship("FacultyNotes", back_populates="subject", cascade="all, delete-orphan")
     quizzes = relationship("FacultyQuiz", back_populates="subject", cascade="all, delete-orphan")
     timetableEntries = relationship("TimetableEntry", back_populates="subject")
+    attendanceSessions = relationship("AttendanceSession", back_populates="subject", cascade="all, delete-orphan")
+    defaulters = relationship("DefaulterList", back_populates="subject", cascade="all, delete-orphan")
 
 class Building(Base):
     __tablename__ = "Building"
@@ -598,6 +611,7 @@ class TimeSlot(Base):
     updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     timetableEntries = relationship("TimetableEntry", back_populates="timeSlot", cascade="all, delete-orphan")
+    attendanceSessions = relationship("AttendanceSession", back_populates="timeSlot", cascade="all, delete-orphan")
 
 class Timetable(Base):
     __tablename__ = "Timetable"
@@ -666,3 +680,90 @@ class TimetableApproval(Base):
 
     timetable = relationship("Timetable", back_populates="approvals")
     user = relationship("User", back_populates="timetableApprovals")
+
+class AttendanceSession(Base):
+    __tablename__ = "AttendanceSession"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    academicYearId = Column(String(191), ForeignKey("AcademicYear.id", ondelete="CASCADE"), nullable=False)
+    departmentId = Column(String(191), ForeignKey("Department.id", ondelete="CASCADE"), nullable=False)
+    programId = Column(String(191), ForeignKey("Program.id", ondelete="CASCADE"), nullable=False)
+    semesterId = Column(String(191), ForeignKey("Semester.id", ondelete="CASCADE"), nullable=False)
+    sectionId = Column(String(191), ForeignKey("Section.id", ondelete="CASCADE"), nullable=False)
+    subjectId = Column(String(191), ForeignKey("Subject.id", ondelete="CASCADE"), nullable=False)
+    timeSlotId = Column(String(191), ForeignKey("TimeSlot.id", ondelete="SET NULL"), nullable=True)
+    date = Column(DateTime, nullable=False)
+    status = Column(String(191), default="ACTIVE", nullable=False)
+    facultyId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    academicYear = relationship("AcademicYear", back_populates="attendanceSessions")
+    department = relationship("Department", back_populates="attendanceSessions")
+    program = relationship("Program", back_populates="attendanceSessions")
+    semester = relationship("Semester", back_populates="attendanceSessions")
+    section = relationship("Section", back_populates="attendanceSessions")
+    subject = relationship("Subject", back_populates="attendanceSessions")
+    timeSlot = relationship("TimeSlot", back_populates="attendanceSessions")
+    faculty = relationship("User", back_populates="attendanceSessions")
+    records = relationship("AttendanceRecord", back_populates="session", cascade="all, delete-orphan")
+    audits = relationship("AttendanceAudit", back_populates="session", cascade="all, delete-orphan")
+
+class AttendanceRecord(Base):
+    __tablename__ = "AttendanceRecord"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    sessionId = Column(String(191), ForeignKey("AttendanceSession.id", ondelete="CASCADE"), nullable=False)
+    studentId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    status = Column(String(191), nullable=False) # PRESENT, ABSENT, LATE, MEDICAL_LEAVE, ON_DUTY
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    session = relationship("AttendanceSession", back_populates="records")
+    student = relationship("User", back_populates="attendanceRecords")
+    corrections = relationship("AttendanceCorrection", back_populates="record", cascade="all, delete-orphan")
+    audits = relationship("AttendanceAudit", back_populates="record", cascade="all, delete-orphan")
+
+class AttendanceCorrection(Base):
+    __tablename__ = "AttendanceCorrection"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    recordId = Column(String(191), ForeignKey("AttendanceRecord.id", ondelete="CASCADE"), nullable=False)
+    studentId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    requestedStatus = Column(String(191), nullable=False)
+    reason = Column(Text, nullable=False)
+    status = Column(String(191), default="PENDING", nullable=False)
+    comments = Column(Text, nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    record = relationship("AttendanceRecord", back_populates="corrections")
+    student = relationship("User", back_populates="attendanceCorrections")
+
+class AttendanceAudit(Base):
+    __tablename__ = "AttendanceAudit"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    sessionId = Column(String(191), ForeignKey("AttendanceSession.id", ondelete="SET NULL"), nullable=True)
+    recordId = Column(String(191), ForeignKey("AttendanceRecord.id", ondelete="SET NULL"), nullable=True)
+    userId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    action = Column(String(191), nullable=False)
+    ipAddress = Column(String(191), nullable=True)
+    userAgent = Column(String(191), nullable=True)
+    reason = Column(Text, nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    session = relationship("AttendanceSession", back_populates="audits")
+    record = relationship("AttendanceRecord", back_populates="audits")
+    user = relationship("User", back_populates="attendanceAudits")
+
+class DefaulterList(Base):
+    __tablename__ = "DefaulterList"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    subjectId = Column(String(191), ForeignKey("Subject.id", ondelete="CASCADE"), nullable=False)
+    sectionId = Column(String(191), ForeignKey("Section.id", ondelete="CASCADE"), nullable=False)
+    studentId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    percentage = Column(Float, nullable=False)
+    category = Column(String(191), nullable=False) # BELOW_75, BELOW_65, BELOW_50
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    subject = relationship("Subject", back_populates="defaulters")
+    section = relationship("Section", back_populates="defaulters")
+    student = relationship("User", back_populates="defaulters")
+

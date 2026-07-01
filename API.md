@@ -89,3 +89,24 @@ Every endpoint returns a unified JSON envelope:
 
 #### Approvals workflow
 * `POST /api/v1/timetable/approval` - Progress layout headers along approval stage checks (Draft -> Dept -> Academic -> Master Admin published status).
+
+---
+
+### 7. Attendance Management Module (New in Day 8)
+
+#### Sessions Management
+* `POST /api/v1/attendance/session` - Create classroom attendance session.
+* `GET /api/v1/attendance/session/{id}/students` - Retrieve section roster for marking attendance (returns students array).
+* `POST /api/v1/attendance/session/{id}/records` - Mark attendance list (saves draft or finalizes records).
+* `GET /api/v1/attendance/sessions` - List attendance sessions.
+
+#### Student View
+* `GET /api/v1/attendance/student/my-attendance` - Fetch personal weekly/monthly and subject-wise summaries for student.
+
+#### Correction Requests
+* `POST /api/v1/attendance/corrections` - Students submit a correction request.
+* `GET /api/v1/attendance/corrections` - Load correction requests (students view own, teachers view their classes).
+* `POST /api/v1/attendance/corrections/{id}/review` - Instructors review correction request (Approve/Reject with comments).
+
+#### Defaulters
+* `GET /api/v1/attendance/defaulters` - Pull defaulter listings (Below 75%, 65%, 50% benchmarks).

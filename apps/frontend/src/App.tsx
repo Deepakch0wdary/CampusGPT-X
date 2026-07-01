@@ -18,6 +18,7 @@ import AcademicDashboard from './pages/AcademicDashboard';
 import StudentDashboard from './pages/StudentDashboard';
 import FacultyDashboard from './pages/FacultyDashboard';
 import TimetableDashboard from './pages/TimetableDashboard';
+import AttendanceDashboard from './pages/AttendanceDashboard';
 
 // Helper validators for local session tracking
 const isAuthenticated = () => !!localStorage.getItem('access_token');
@@ -114,6 +115,12 @@ const App: React.FC = () => {
             <Route path="/timetable-dashboard" element={
               <PrivateRoute>
                 <TimetableDashboard />
+              </PrivateRoute>
+            } />
+
+            <Route path="/attendance-dashboard" element={
+              <PrivateRoute>
+                <AttendanceDashboard />
               </PrivateRoute>
             } />
 

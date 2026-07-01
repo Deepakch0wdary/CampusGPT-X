@@ -4,6 +4,19 @@ All notable changes to the **CampusGPT X** system are logged in this file.
 
 ---
 
+## [8.0-Complete] - 2026-07-01
+### Added
+* Complete Attendance Management System including:
+  * **Attendance Sessions**: Track classroom sessions by academic parameters and timings.
+  * **Manual / Batch Attendance marking**: Easily mark students as Present, Absent, Late, Medical Leave, or On Duty on a section roster list grid.
+  * **Dynamic percentage recalculation**: Recalculates `StudentAttendanceSummary` parameters upon closing/finalizing sessions.
+  * **Automated Defaulter lists**: Defaulter lists generated for students dropping below 75%, 65%, or 50% benchmarks.
+  * **Resolution requests workflows**: Student correction tickets reviewed, verified, and commented on by instructors.
+  * **Security & Audit traces**: Log operations, origin IPs, device user-agents, and modification reasons.
+* Fully interactive React `AttendanceDashboard.tsx` view with roster grids, defaulter searches, and correction review modals.
+
+---
+
 ## [7.0-Complete] - 2026-07-01
 ### Added
 * Complete Smart Timetable Management Module including:
