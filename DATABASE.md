@@ -58,13 +58,21 @@ This document describes the database design, tables, relations, and optimization
 | **QRScanLog** | `QRScanLog` | Scanned check-in attempts history log. | `id` (PK) |
 | **GeoValidation** | `GeoValidation` | Coordinate mapping calculations log. | `id` (PK), `scanLogId` (UQ) |
 | **DeviceValidation** | `DeviceValidation` | Hardware fingerprint identities log. | `id` (PK), `scanLogId` (UQ) |
+| **FaceProfile** | `FaceProfile` | User biometric profiles pending admin review. | `id` (PK), `userId` (UQ) |
+| **FaceEmbedding** | `FaceEmbedding` | Secure 512-dim vectors across 5 angles. | `id` (PK) |
+| **FaceRegistration** | `FaceRegistration` | Historical review logs for biometrics. | `id` (PK) |
+| **FaceVerification** | `FaceVerification` | Facial identification attempts. | `id` (PK) |
+| **FaceAttendance** | `FaceAttendance` | Integrates face verifications with records. | `id` (PK), `attendanceRecordId` (UQ) |
+| **FaceAudit** | `FaceAudit` | Audits biometric changes. | `id` (PK) |
+| **LivenessCheck** | `LivenessCheck` | Records blinking yaw degree counters. | `id` (PK) |
+| **SpoofDetection** | `SpoofDetection` | Anti-spoofing screen replay flags. | `id` (PK) |
 
 ---
 
 ## 🔗 Relationships & Cascades
 
 1. **Student Cascade Rules**:
-   * Deleting a student `User` cascades to delete all their profile, attendance summaries, results, assignments, certificates, documents, notifications, attendance records, correction requests, and QR scan logs.
+   * Deleting a student `User` cascades to delete all their profile, attendance summaries, results, assignments, certificates, documents, notifications, attendance records, correction requests, QR scan logs, and biometric face profiles.
    * Deleting a `Subject` cascades to delete all corresponding `StudentAttendanceSummary`, `StudentResult`, and `StudentAssignment` records.
 
 2. **Faculty Cascade Rules**:
@@ -80,6 +88,10 @@ This document describes the database design, tables, relations, and optimization
    * Deleting an `AttendanceSession` cascades to delete its `AttendanceRecord` items, `AttendanceAudit` lines, and linked `QRSession`.
    * Deleting a `QRSession` cascades to delete all its rotating `QRCode` records, `QRScanLog` items, `GeoValidation` logs, and `DeviceValidation` parameters.
 
+5. **Face Recognition Cascade Rules**:
+   * Deleting a `FaceProfile` cascades to clear all its `FaceEmbedding` angles, `FaceVerification` items, `LivenessCheck` items, and `SpoofDetection` logs.
+   * Deleting a `FaceVerification` cascades to delete its linked `FaceAttendance` bindings.
+
 ---
 
 ## ⚡ Index & Performance Optimizations
@@ -90,3 +102,4 @@ This document describes the database design, tables, relations, and optimization
 * **Grid Entry Indexing**: Combo indices on `[dayOfWeek, timeSlotId, roomId]` and `[dayOfWeek, timeSlotId, facultyId]` speed up conflict checking lookups.
 * **QR Dynamic Indexes**: Unique key index on `QRCode.codeValue` for rapid access key verification.
 * **Scan log uniqueness**: Unique indexes on `GeoValidation.scanLogId` and `DeviceValidation.scanLogId` for fast join lookups.
+* **Face Uniqueness Indexes**: Unique index on `FaceProfile.userId` for fast profile lookups, and unique indexes on `FaceAttendance.attendanceRecordId` and `FaceAttendance.verificationId` for one-to-one mapping queries.

@@ -103,6 +103,10 @@ class User(Base):
     attendanceAudits = relationship("AttendanceAudit", back_populates="user", cascade="all, delete-orphan")
     defaulters = relationship("DefaulterList", back_populates="student", cascade="all, delete-orphan")
     qrScanLogs = relationship("QRScanLog", back_populates="student", cascade="all, delete-orphan")
+    faceProfile = relationship("FaceProfile", uselist=False, back_populates="user", cascade="all, delete-orphan")
+    faceVerifications = relationship("FaceVerification", back_populates="user", cascade="all, delete-orphan")
+    faceAudits = relationship("FaceAudit", back_populates="user", cascade="all, delete-orphan")
+    faceApprovedRegistrations = relationship("FaceRegistration", back_populates="admin")
 
 class UserProfile(Base):
     __tablename__ = "UserProfile"
@@ -709,6 +713,7 @@ class AttendanceSession(Base):
     records = relationship("AttendanceRecord", back_populates="session", cascade="all, delete-orphan")
     audits = relationship("AttendanceAudit", back_populates="session", cascade="all, delete-orphan")
     qrSession = relationship("QRSession", uselist=False, back_populates="attendanceSession", cascade="all, delete-orphan")
+    faceAttendances = relationship("FaceAttendance", back_populates="attendanceSession", cascade="all, delete-orphan")
 
 class AttendanceRecord(Base):
     __tablename__ = "AttendanceRecord"
@@ -723,6 +728,7 @@ class AttendanceRecord(Base):
     student = relationship("User", back_populates="attendanceRecords")
     corrections = relationship("AttendanceCorrection", back_populates="record", cascade="all, delete-orphan")
     audits = relationship("AttendanceAudit", back_populates="record", cascade="all, delete-orphan")
+    faceAttendance = relationship("FaceAttendance", uselist=False, back_populates="attendanceRecord", cascade="all, delete-orphan")
 
 class AttendanceCorrection(Base):
     __tablename__ = "AttendanceCorrection"
@@ -832,5 +838,109 @@ class DeviceValidation(Base):
     createdAt = Column(DateTime, default=datetime.utcnow)
 
     scanLog = relationship("QRScanLog", back_populates="deviceValidation")
+
+class FaceProfile(Base):
+    __tablename__ = "FaceProfile"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    userId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), unique=True, nullable=False)
+    status = Column(String(191), default="PENDING", nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = relationship("User", back_populates="faceProfile")
+    embeddings = relationship("FaceEmbedding", back_populates="faceProfile", cascade="all, delete-orphan")
+    verifications = relationship("FaceVerification", back_populates="faceProfile", cascade="all, delete-orphan")
+    livenessChecks = relationship("LivenessCheck", back_populates="faceProfile", cascade="all, delete-orphan")
+    spoofDetections = relationship("SpoofDetection", back_populates="faceProfile", cascade="all, delete-orphan")
+    registrations = relationship("FaceRegistration", back_populates="faceProfile", cascade="all, delete-orphan")
+
+class FaceEmbedding(Base):
+    __tablename__ = "FaceEmbedding"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    faceProfileId = Column(String(191), ForeignKey("FaceProfile.id", ondelete="CASCADE"), nullable=False)
+    angle = Column(String(191), nullable=False) # FRONT, LEFT, RIGHT, UP, DOWN
+    embeddingJson = Column(Text, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    faceProfile = relationship("FaceProfile", back_populates="embeddings")
+
+class FaceRegistration(Base):
+    __tablename__ = "FaceRegistration"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    faceProfileId = Column(String(191), ForeignKey("FaceProfile.id", ondelete="CASCADE"), nullable=False)
+    adminId = Column(String(191), ForeignKey("User.id", ondelete="SET NULL"), nullable=True)
+    status = Column(String(191), nullable=False) # APPROVED, REJECTED
+    rejectionReason = Column(String(191), nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    faceProfile = relationship("FaceProfile", back_populates="registrations")
+    admin = relationship("User", back_populates="faceApprovedRegistrations")
+
+class FaceVerification(Base):
+    __tablename__ = "FaceVerification"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    userId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=True)
+    faceProfileId = Column(String(191), ForeignKey("FaceProfile.id", ondelete="CASCADE"), nullable=True)
+    isSuccess = Column(Boolean, nullable=False)
+    confidence = Column(Float, nullable=False)
+    verificationType = Column(String(191), nullable=False) # LOGIN, ATTENDANCE, GENERAL
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="faceVerifications")
+    faceProfile = relationship("FaceProfile", back_populates="verifications")
+    faceAttendance = relationship("FaceAttendance", uselist=False, back_populates="verification", cascade="all, delete-orphan")
+    livenessChecks = relationship("LivenessCheck", back_populates="verification", cascade="all, delete-orphan")
+    spoofDetections = relationship("SpoofDetection", back_populates="verification", cascade="all, delete-orphan")
+
+class FaceAttendance(Base):
+    __tablename__ = "FaceAttendance"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    attendanceSessionId = Column(String(191), ForeignKey("AttendanceSession.id", ondelete="CASCADE"), nullable=False)
+    attendanceRecordId = Column(String(191), ForeignKey("AttendanceRecord.id", ondelete="CASCADE"), unique=True, nullable=False)
+    verificationId = Column(String(191), ForeignKey("FaceVerification.id", ondelete="CASCADE"), unique=True, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    attendanceSession = relationship("AttendanceSession", back_populates="faceAttendances")
+    attendanceRecord = relationship("AttendanceRecord", back_populates="faceAttendance")
+    verification = relationship("FaceVerification", back_populates="faceAttendance")
+
+class FaceAudit(Base):
+    __tablename__ = "FaceAudit"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    userId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    action = Column(String(191), nullable=False) # RESET_REGISTRATION, DELETE_EMBEDDING, APPROVE_BIOMETRICS, REJECT_BIOMETRICS
+    ipAddress = Column(String(191), nullable=True)
+    userAgent = Column(String(191), nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="faceAudits")
+
+class LivenessCheck(Base):
+    __tablename__ = "LivenessCheck"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    faceProfileId = Column(String(191), ForeignKey("FaceProfile.id", ondelete="CASCADE"), nullable=True)
+    verificationId = Column(String(191), ForeignKey("FaceVerification.id", ondelete="CASCADE"), nullable=True)
+    blinkCount = Column(Integer, default=0, nullable=False)
+    smileDetected = Column(Boolean, default=False, nullable=False)
+    headRotationDegrees = Column(Float, default=0.0, nullable=False)
+    isPassed = Column(Boolean, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    faceProfile = relationship("FaceProfile", back_populates="livenessChecks")
+    verification = relationship("FaceVerification", back_populates="livenessChecks")
+
+class SpoofDetection(Base):
+    __tablename__ = "SpoofDetection"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    faceProfileId = Column(String(191), ForeignKey("FaceProfile.id", ondelete="CASCADE"), nullable=True)
+    verificationId = Column(String(191), ForeignKey("FaceVerification.id", ondelete="CASCADE"), nullable=True)
+    spoofProbability = Column(Float, nullable=False)
+    spoofCategory = Column(String(191), nullable=False) # PRINTED_PHOTO, PHONE_SCREEN, REPLAY_VIDEO, NONE
+    isSpoofed = Column(Boolean, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    faceProfile = relationship("FaceProfile", back_populates="spoofDetections")
+    verification = relationship("FaceVerification", back_populates="spoofDetections")
+
 
 

@@ -63,6 +63,10 @@ model User {
   attendanceAudits             AttendanceAudit[]
   defaulters                   DefaulterList[]
   qrScanLogs                   QRScanLog[]
+  faceProfile                  FaceProfile?
+  faceVerifications            FaceVerification[]
+  faceAudits                   FaceAudit[]
+  faceApprovedRegistrations    FaceRegistration[]
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
 
@@ -664,6 +668,7 @@ model AttendanceSession {
   records        AttendanceRecord[]
   audits         AttendanceAudit[]
   qrSession      QRSession?
+  faceAttendances FaceAttendance[]
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
 
@@ -679,6 +684,7 @@ model AttendanceRecord {
   status      String                 // PRESENT, ABSENT, LATE, MEDICAL_LEAVE, ON_DUTY
   corrections AttendanceCorrection[]
   audits      AttendanceAudit[]
+  faceAttendance FaceAttendance?
   createdAt   DateTime               @default(now())
   updatedAt   DateTime               @updatedAt
 
@@ -784,4 +790,99 @@ model DeviceValidation {
   os        String?
   ipAddress String?
   createdAt DateTime  @default(now())
+}
+
+model FaceProfile {
+  id              String             @id @default(uuid())
+  userId          String             @unique
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status          String             @default("PENDING") // PENDING, APPROVED, REJECTED
+  embeddings      FaceEmbedding[]
+  verifications   FaceVerification[]
+  livenessChecks  LivenessCheck[]
+  spoofDetections SpoofDetection[]
+  registrations   FaceRegistration[]
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+}
+
+model FaceEmbedding {
+  id            String      @id @default(uuid())
+  faceProfileId String
+  faceProfile   FaceProfile @relation(fields: [faceProfileId], references: [id], onDelete: Cascade)
+  angle         String      // FRONT, LEFT, RIGHT, UP, DOWN
+  embeddingJson String      @db.Text
+  createdAt     DateTime    @default(now())
+}
+
+model FaceRegistration {
+  id             String      @id @default(uuid())
+  faceProfileId  String
+  faceProfile    FaceProfile @relation(fields: [faceProfileId], references: [id], onDelete: Cascade)
+  adminId        String?
+  admin          User?       @relation(fields: [adminId], references: [id], onDelete: SetNull)
+  status         String      // APPROVED, REJECTED
+  rejectionReason String?
+  createdAt      DateTime    @default(now())
+}
+
+model FaceVerification {
+  id               String          @id @default(uuid())
+  userId           String?
+  user             User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  faceProfileId    String?
+  faceProfile      FaceProfile?    @relation(fields: [faceProfileId], references: [id], onDelete: Cascade)
+  isSuccess        Boolean
+  confidence       Float
+  verificationType String          // LOGIN, ATTENDANCE, GENERAL
+  faceAttendance   FaceAttendance?
+  livenessChecks   LivenessCheck[]
+  spoofDetections  SpoofDetection[]
+  createdAt        DateTime        @default(now())
+}
+
+model FaceAttendance {
+  id                  String            @id @default(uuid())
+  attendanceSessionId String
+  attendanceSession   AttendanceSession @relation(fields: [attendanceSessionId], references: [id], onDelete: Cascade)
+  attendanceRecordId  String            @unique
+  attendanceRecord    AttendanceRecord  @relation(fields: [attendanceRecordId], references: [id], onDelete: Cascade)
+  verificationId      String            @unique
+  verification        FaceVerification  @relation(fields: [verificationId], references: [id], onDelete: Cascade)
+  createdAt           DateTime          @default(now())
+}
+
+model FaceAudit {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action    String   // RESET_REGISTRATION, DELETE_EMBEDDING, APPROVE_BIOMETRICS, REJECT_BIOMETRICS
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+}
+
+model LivenessCheck {
+  id                   String            @id @default(uuid())
+  faceProfileId        String?
+  faceProfile          FaceProfile?      @relation(fields: [faceProfileId], references: [id], onDelete: Cascade)
+  verificationId       String?
+  verification         FaceVerification? @relation(fields: [verificationId], references: [id], onDelete: Cascade)
+  blinkCount           Int               @default(0)
+  smileDetected        Boolean           @default(false)
+  headRotationDegrees  Float             @default(0.0)
+  isPassed             Boolean
+  createdAt            DateTime          @default(now())
+}
+
+model SpoofDetection {
+  id               String            @id @default(uuid())
+  faceProfileId    String?
+  faceProfile      FaceProfile?      @relation(fields: [faceProfileId], references: [id], onDelete: Cascade)
+  verificationId   String?
+  verification     FaceVerification? @relation(fields: [verificationId], references: [id], onDelete: Cascade)
+  spoofProbability Float
+  spoofCategory    String            // PRINTED_PHOTO, PHONE_SCREEN, REPLAY_VIDEO, NONE
+  isSpoofed        Boolean
+  createdAt        DateTime          @default(now())
 }

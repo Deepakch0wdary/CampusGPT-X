@@ -20,6 +20,7 @@ import FacultyDashboard from './pages/FacultyDashboard';
 import TimetableDashboard from './pages/TimetableDashboard';
 import AttendanceDashboard from './pages/AttendanceDashboard';
 import QRAttendanceDashboard from './pages/QRAttendanceDashboard';
+import FaceRecognitionDashboard from './pages/FaceRecognitionDashboard';
 
 // Helper validators for local session tracking
 const isAuthenticated = () => !!localStorage.getItem('access_token');
@@ -128,6 +129,12 @@ const App: React.FC = () => {
             <Route path="/qr-attendance-dashboard" element={
               <PrivateRoute>
                 <QRAttendanceDashboard />
+              </PrivateRoute>
+            } />
+
+            <Route path="/face-recognition-dashboard" element={
+              <PrivateRoute>
+                <FaceRecognitionDashboard />
               </PrivateRoute>
             } />
 

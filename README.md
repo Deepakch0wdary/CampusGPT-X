@@ -178,4 +178,5 @@ For detailed guides and deep dives:
 * [timetable_management.md](file:///C:/Users/DELL/.gemini/antigravity-ide/brain/6814b530-b666-4f74-bfb2-40f328843fb5/timetable_management.md) — Smart timetable workflows and AI constraint schemas.
 * [attendance_management.md](file:///C:/Users/DELL/.gemini/antigravity-ide/brain/6814b530-b666-4f74-bfb2-40f328843fb5/attendance_management.md) — Attendance management design and auto-recalculation algorithms.
 * [qr_attendance.md](file:///C:/Users/DELL/.gemini/antigravity-ide/brain/6814b530-b666-4f74-bfb2-40f328843fb5/qr_attendance.md) — Secure Dynamic QR check-in geofence algorithms.
+* [face_recognition.md](file:///C:/Users/DELL/.gemini/antigravity-ide/brain/6814b530-b666-4f74-bfb2-40f328843fb5/face_recognition.md) — Biometric facial recognition and spoof-protection logic models.
 

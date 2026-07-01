@@ -123,3 +123,21 @@ Every endpoint returns a unified JSON envelope:
 
 #### Live Status Polling
 * `GET /api/v1/qr-attendance/session/{id}/status` - Live stats detailing Present List, Pending List, and attendance counts.
+
+---
+
+### 9. Face Recognition Module (New in Day 10)
+
+#### Face Registration
+* `POST /api/v1/face/register` - Captures 5 angles and registers face profiles.
+* `GET /api/v1/face/registrations` - Lists registration logs for review.
+* `POST /api/v1/face/registrations/{id}/review` - Admins approve or reject biometric applications.
+* `DELETE /api/v1/face/registrations/{id}` - Reset or delete face profile embeddings.
+
+#### Face Recognition Verification
+* `POST /api/v1/face/login` - Facially authenticates users with cosine similarity, liveness metrics, and anti-spoof checks.
+* `POST /api/v1/face/verify` - Biometric comparison helper checking features matching percentages.
+* `POST /api/v1/face/attendance` - Student facial recognitions check-in marking classroom attendance.
+
+#### Administrative statistics
+* `GET /api/v1/face/statistics` - Recognition logs, liveness passed counts, and failed verification indicators.
