@@ -41,6 +41,13 @@ This document describes the database design, tables, relations, and optimization
 | **FacultyQuiz** | `FacultyQuiz` | Scheduled question bank tests. | `id` (PK) |
 | **FacultyLeave** | `FacultyLeave` | Leave request approvals tracker. | `id` (PK) |
 | **FacultyNotification** | `FacultyNotification` | Staff-specific bulletin updates. | `id` (PK) |
+| **AcademicCalendar** | `AcademicCalendar` | Calendar versions mapping working days. | `id` (PK) |
+| **CalendarEvent** | `CalendarEvent` | Custom calendar event days and holidays. | `id` (PK) |
+| **TimeSlot** | `TimeSlot` | Configure period timings bounds and types. | `id` (PK) |
+| **Timetable** | `Timetable` | Timetable grid headers for sections. | `id` (PK) |
+| **TimetableEntry** | `TimetableEntry` | Grid cell mappings binding teachers/rooms. | `id` (PK) |
+| **SubstituteFaculty** | `SubstituteFaculty` | Track substitutions and swaps history. | `id` (PK) |
+| **TimetableApproval** | `TimetableApproval` | Audit approvals stage workflow logs. | `id` (PK) |
 
 ---
 
@@ -54,9 +61,16 @@ This document describes the database design, tables, relations, and optimization
    * Deleting a faculty `User` cascades to delete their `FacultyProfile`, `AssignmentDef`, `FacultyNotes`, `FacultyQuiz`, `FacultyLeave`, and `FacultyNotification` records.
    * Deleting a `Subject` cascades to delete all corresponding `AssignmentDef`, `FacultyNotes`, and `FacultyQuiz` records.
 
+3. **Timetable Cascade Rules**:
+   * Deleting a `Timetable` cascades to delete all its entries (`TimetableEntry`) and approval logs (`TimetableApproval`).
+   * Deleting a `TimeSlot` cascades to delete all mapped entries (`TimetableEntry`).
+   * Deleting a `Room` or `Laboratory` sets the corresponding grid cell mappings (`roomId`, `labId`) to `NULL`.
+
 ---
 
 ## ⚡ Index & Performance Optimizations
 
 * **Employee ID**: Unique index on `FacultyProfile.employeeId` prevents collision.
 * **FacultyProfile userId**: Unique index on `FacultyProfile.userId` links single profile cards.
+* **TimeSlot Bounds**: Indices on `startTime` and `endTime` speed up overlap conflict validation check queries.
+* **Grid Entry Indexing**: Combo indices on `[dayOfWeek, timeSlotId, roomId]` and `[dayOfWeek, timeSlotId, facultyId]` speed up conflict checking lookups.

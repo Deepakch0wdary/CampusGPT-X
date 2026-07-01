@@ -175,4 +175,5 @@ For detailed guides and deep dives:
 * [academic_structure.md](file:///C:/Users/DELL/.gemini/antigravity-ide/brain/6814b530-b666-4f74-bfb2-40f328843fb5/academic_structure.md) — Academic structure domain workflows.
 * [student_portal.md](file:///C:/Users/DELL/.gemini/antigravity-ide/brain/6814b530-b666-4f74-bfb2-40f328843fb5/student_portal.md) — Student portal workflows and security schemas.
 * [faculty_portal.md](file:///C:/Users/DELL/.gemini/antigravity-ide/brain/6814b530-b666-4f74-bfb2-40f328843fb5/faculty_portal.md) — Faculty portal workflows and security schemas.
+* [timetable_management.md](file:///C:/Users/DELL/.gemini/antigravity-ide/brain/6814b530-b666-4f74-bfb2-40f328843fb5/timetable_management.md) — Smart timetable workflows and AI constraint schemas.
 

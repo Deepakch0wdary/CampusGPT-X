@@ -53,6 +53,10 @@ model User {
   quizzes              FacultyQuiz[]
   leaves               FacultyLeave[]
   facultyNotifications FacultyNotification[]
+  timetableEntries             TimetableEntry[]
+  substituteRequestsOriginal   SubstituteFaculty[] @relation(name: "OriginalFaculty")
+  substituteRequestsSubstitute SubstituteFaculty[] @relation(name: "SubstituteFaculty")
+  timetableApprovals           TimetableApproval[]
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
 
@@ -188,6 +192,7 @@ model Section {
   academicYear       AcademicYear?       @relation(fields: [academicYearId], references: [id], onDelete: SetNull)
   users              User[]
   facultyAssignments FacultyAssignment[]
+  timetables         Timetable[]
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
 }
@@ -202,6 +207,8 @@ model AcademicYear {
   semesters            Semester[]
   sections             Section[]
   facultyAssignments   FacultyAssignment[]
+  calendars            AcademicCalendar[]
+  timetables           Timetable[]
   createdAt            DateTime            @default(now())
   updatedAt            DateTime            @updatedAt
 }
@@ -250,6 +257,7 @@ model Semester {
   subjects           Subject[]
   sections           Section[]
   facultyAssignments FacultyAssignment[]
+  timetables         Timetable[]
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
 }
@@ -276,6 +284,7 @@ model Subject {
   assignmentDefs      AssignmentDef[]
   facultyNotes        FacultyNotes[]
   quizzes             FacultyQuiz[]
+  timetableEntries    TimetableEntry[]
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
 }
@@ -307,6 +316,7 @@ model Room {
   department       Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
+  timetableEntries TimetableEntry[]
 }
 
 model Laboratory {
@@ -320,6 +330,7 @@ model Laboratory {
   labAssistant String?
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
+  timetableEntries TimetableEntry[]
 }
 
 model FacultyAssignment {
@@ -515,4 +526,102 @@ model FacultyNotification {
   type      String   // ADMIN, DEPT, MEETING, EXAM, ASSIGNMENT
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
+}
+
+model AcademicCalendar {
+  id             String          @id @default(uuid())
+  academicYearId String
+  academicYear   AcademicYear    @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  version        Int             @default(1)
+  workingDays    String          // JSON string like ["MONDAY", "TUESDAY"]
+  events         CalendarEvent[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+model CalendarEvent {
+  id          String           @id @default(uuid())
+  calendarId  String
+  calendar    AcademicCalendar @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+  title       String
+  eventDate   DateTime
+  type        String           // HOLIDAY, EXAM_DAY, COLLEGE_EVENT, SPECIAL_WORKING_DAY
+  description String?          @db.Text
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+model TimeSlot {
+  id               String           @id @default(uuid())
+  name             String           // Period 1, Lunch Break, etc.
+  startTime        String
+  endTime          String
+  type             String           // CLASS, BREAK, LAB, EXTRA
+  timetableEntries TimetableEntry[]
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+}
+
+model Timetable {
+  id             String              @id @default(uuid())
+  name           String
+  academicYearId String
+  academicYear   AcademicYear        @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  semesterId     String
+  semester       Semester            @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  sectionId      String
+  section        Section             @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  status         String              @default("DRAFT") // DRAFT, REVIEW_PENDING, PUBLISHED, ARCHIVED
+  version        Int                 @default(1)
+  entries        TimetableEntry[]
+  approvals      TimetableApproval[]
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+}
+
+model TimetableEntry {
+  id                 String              @id @default(uuid())
+  timetableId        String
+  timetable          Timetable           @relation(fields: [timetableId], references: [id], onDelete: Cascade)
+  dayOfWeek          String              // MONDAY, TUESDAY, etc.
+  timeSlotId         String
+  timeSlot           TimeSlot            @relation(fields: [timeSlotId], references: [id], onDelete: Cascade)
+  subjectId          String?
+  subject            Subject?            @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  facultyId          String?
+  faculty            User?               @relation(fields: [facultyId], references: [id], onDelete: SetNull)
+  roomId             String?
+  room               Room?               @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  labId              String?
+  lab                Laboratory?         @relation(fields: [labId], references: [id], onDelete: SetNull)
+  substituteRequests SubstituteFaculty[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+}
+
+model SubstituteFaculty {
+  id                 String         @id @default(uuid())
+  date               DateTime
+  timetableEntryId   String
+  timetableEntry     TimetableEntry @relation(fields: [timetableEntryId], references: [id], onDelete: Cascade)
+  originalFacultyId  String
+  originalFaculty    User           @relation(name: "OriginalFaculty", fields: [originalFacultyId], references: [id], onDelete: Cascade)
+  substituteFacultyId String
+  substituteFaculty  User           @relation(name: "SubstituteFaculty", fields: [substituteFacultyId], references: [id], onDelete: Cascade)
+  status             String         @default("PENDING") // PENDING, APPROVED, REJECTED
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+}
+
+model TimetableApproval {
+  id          String    @id @default(uuid())
+  timetableId String
+  timetable   Timetable @relation(fields: [timetableId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stage       String    // DEPT_REVIEW, ACADEMIC_OFFICE, MASTER_ADMIN
+  status      String    // APPROVED, REJECTED
+  remarks     String?   @db.Text
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }

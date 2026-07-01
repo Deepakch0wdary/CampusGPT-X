@@ -31,11 +31,11 @@ CampusGPT X is built as a high-performance monorepo:
 1. **`apps/frontend`**:
    * Single Page Application (SPA) utilizing **React 18**, **Vite**, **TypeScript**, and **Tailwind CSS**.
    * Responsive interfaces crafted with **Material UI (MUI)**.
-   * Day 6 includes the Faculty Portal dashboard view **`FacultyDashboard.tsx`**.
+   * Day 7 includes the Smart Timetable dashboard view **`TimetableDashboard.tsx`**.
 
 2. **`apps/backend`**:
    * REST API engine built with **FastAPI**.
-   * Day 6 registers the Faculty Portal endpoint handler in **`faculties.py`** to perform CRUD actions on faculty-related records.
+   * Day 7 registers the Smart Timetable endpoint handler in **`timetables.py`** to perform CRUD actions and conflict detection checks.
 
 3. **`prisma`**:
    * Relational database schema manager.
@@ -45,5 +45,5 @@ CampusGPT X is built as a high-performance monorepo:
 ## 🛡️ Security Architecture
 
 * **Broken Access Control Prevention (BACP)**:
-  Every API endpoint in `faculties.py` reads user parameters directly from the decoded JWT token context. If the user possesses the `TEACHER` role, the backend forces subject queries to match their official `FacultyAssignment` records, preventing unauthorized editing of grades, assignments, quizzes, and classroom rosters.
+  Every API endpoint in `timetables.py` reads user parameters directly from the decoded JWT token context. Timetable grid modifications and slot mapping creations are strictly restricted to `MASTER_ADMIN` roles. Student role scheduled queries automatically filter results by their active `sectionId` in their profiles, preventing arbitrary ID parameter query inspection.
 * **Audit Logging**: Saves all core state actions in the `AuditLog` database table.

@@ -4,6 +4,19 @@ All notable changes to the **CampusGPT X** system are logged in this file.
 
 ---
 
+## [7.0-Complete] - 2026-07-01
+### Added
+* Complete Smart Timetable Management Module including:
+  * **Academic Calendars**: Track holidays, events, and special working days.
+  * **Period/Time Slot configurations**: Setup period bounds and breaks with validation preventing overlaps.
+  * **Automatic Conflict Detection Checks**: Automated verification of faculty clashes, room occupied states, laboratory clashes, and student duplicate period maps.
+  * **Substitute Faculty Coordinator desk**: Swap teachers for classes on selected dates, track history logs, and manage admin approvals.
+  * **Multi-Stage Approval Workflow**: Move grids from Draft -> Department -> Academic Office -> Master Admin published status.
+  * **Role-Specific grid schedules**: Custom weekly and daily schedules loaded for students and faculty.
+* Highly responsive React `TimetableDashboard.tsx` with weekly timetable matrix editor and modal dialogs.
+
+---
+
 ## [6.0-Complete] - 2026-07-01
 ### Added
 * Complete Faculty Portal and Faculty Dashboard Module including:

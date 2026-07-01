@@ -93,6 +93,10 @@ class User(Base):
     quizzes = relationship("FacultyQuiz", back_populates="faculty", cascade="all, delete-orphan")
     leaves = relationship("FacultyLeave", back_populates="faculty", cascade="all, delete-orphan")
     facultyNotifications = relationship("FacultyNotification", back_populates="faculty", cascade="all, delete-orphan")
+    timetableEntries = relationship("TimetableEntry", back_populates="faculty")
+    substituteRequestsOriginal = relationship("SubstituteFaculty", foreign_keys="[SubstituteFaculty.originalFacultyId]", back_populates="originalFaculty", cascade="all, delete-orphan")
+    substituteRequestsSubstitute = relationship("SubstituteFaculty", foreign_keys="[SubstituteFaculty.substituteFacultyId]", back_populates="substituteFaculty", cascade="all, delete-orphan")
+    timetableApprovals = relationship("TimetableApproval", back_populates="user", cascade="all, delete-orphan")
 
 class UserProfile(Base):
     __tablename__ = "UserProfile"
@@ -157,6 +161,7 @@ class Section(Base):
     academicYear = relationship("AcademicYear", back_populates="sections")
     users = relationship("User", back_populates="section", foreign_keys=[User.sectionId])
     facultyAssignments = relationship("FacultyAssignment", back_populates="section", cascade="all, delete-orphan")
+    timetables = relationship("Timetable", back_populates="section", cascade="all, delete-orphan")
 
 class AcademicYear(Base):
     __tablename__ = "AcademicYear"
@@ -172,6 +177,8 @@ class AcademicYear(Base):
     semesters = relationship("Semester", back_populates="academicYear", cascade="all, delete-orphan")
     sections = relationship("Section", back_populates="academicYear")
     facultyAssignments = relationship("FacultyAssignment", back_populates="academicYear", cascade="all, delete-orphan")
+    calendars = relationship("AcademicCalendar", back_populates="academicYear", cascade="all, delete-orphan")
+    timetables = relationship("Timetable", back_populates="academicYear", cascade="all, delete-orphan")
 
 class Program(Base):
     __tablename__ = "Program"
@@ -223,6 +230,7 @@ class Semester(Base):
     subjects = relationship("Subject", back_populates="semester", cascade="all, delete-orphan")
     sections = relationship("Section", back_populates="semester", cascade="all, delete-orphan")
     facultyAssignments = relationship("FacultyAssignment", back_populates="semester", cascade="all, delete-orphan")
+    timetables = relationship("Timetable", back_populates="semester", cascade="all, delete-orphan")
 
 class Subject(Base):
     __tablename__ = "Subject"
@@ -250,6 +258,7 @@ class Subject(Base):
     assignmentDefs = relationship("AssignmentDef", back_populates="subject", cascade="all, delete-orphan")
     facultyNotes = relationship("FacultyNotes", back_populates="subject", cascade="all, delete-orphan")
     quizzes = relationship("FacultyQuiz", back_populates="subject", cascade="all, delete-orphan")
+    timetableEntries = relationship("TimetableEntry", back_populates="subject")
 
 class Building(Base):
     __tablename__ = "Building"
@@ -281,6 +290,7 @@ class Room(Base):
 
     building = relationship("Building", back_populates="rooms")
     department = relationship("Department", back_populates="rooms")
+    timetableEntries = relationship("TimetableEntry", back_populates="room")
 
 class Laboratory(Base):
     __tablename__ = "Laboratory"
@@ -295,6 +305,7 @@ class Laboratory(Base):
     updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     department = relationship("Department", back_populates="laboratories")
+    timetableEntries = relationship("TimetableEntry", back_populates="lab")
 
 class FacultyAssignment(Base):
     __tablename__ = "FacultyAssignment"
@@ -550,3 +561,108 @@ class FacultyNotification(Base):
     createdAt = Column(DateTime, default=datetime.utcnow)
 
     faculty = relationship("User", back_populates="facultyNotifications")
+
+class AcademicCalendar(Base):
+    __tablename__ = "AcademicCalendar"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    academicYearId = Column(String(191), ForeignKey("AcademicYear.id", ondelete="CASCADE"), nullable=False)
+    version = Column(Integer, default=1, nullable=False)
+    workingDays = Column(String(191), nullable=False) # JSON array like ["MONDAY"]
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    academicYear = relationship("AcademicYear", back_populates="calendars")
+    events = relationship("CalendarEvent", back_populates="calendar", cascade="all, delete-orphan")
+
+class CalendarEvent(Base):
+    __tablename__ = "CalendarEvent"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    calendarId = Column(String(191), ForeignKey("AcademicCalendar.id", ondelete="CASCADE"), nullable=False)
+    title = Column(String(191), nullable=False)
+    eventDate = Column(DateTime, nullable=False)
+    type = Column(String(191), nullable=False) # HOLIDAY, EXAM_DAY, COLLEGE_EVENT, SPECIAL_WORKING_DAY
+    description = Column(Text, nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    calendar = relationship("AcademicCalendar", back_populates="events")
+
+class TimeSlot(Base):
+    __tablename__ = "TimeSlot"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    name = Column(String(191), nullable=False)
+    startTime = Column(String(191), nullable=False)
+    endTime = Column(String(191), nullable=False)
+    type = Column(String(191), nullable=False) # CLASS, BREAK, LAB, EXTRA
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    timetableEntries = relationship("TimetableEntry", back_populates="timeSlot", cascade="all, delete-orphan")
+
+class Timetable(Base):
+    __tablename__ = "Timetable"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    name = Column(String(191), nullable=False)
+    academicYearId = Column(String(191), ForeignKey("AcademicYear.id", ondelete="CASCADE"), nullable=False)
+    semesterId = Column(String(191), ForeignKey("Semester.id", ondelete="CASCADE"), nullable=False)
+    sectionId = Column(String(191), ForeignKey("Section.id", ondelete="CASCADE"), nullable=False)
+    status = Column(String(191), default="DRAFT", nullable=False) # DRAFT, REVIEW_PENDING, PUBLISHED, ARCHIVED
+    version = Column(Integer, default=1, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    academicYear = relationship("AcademicYear", back_populates="timetables")
+    semester = relationship("Semester", back_populates="timetables")
+    section = relationship("Section", back_populates="timetables")
+    entries = relationship("TimetableEntry", back_populates="timetable", cascade="all, delete-orphan")
+    approvals = relationship("TimetableApproval", back_populates="timetable", cascade="all, delete-orphan")
+
+class TimetableEntry(Base):
+    __tablename__ = "TimetableEntry"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    timetableId = Column(String(191), ForeignKey("Timetable.id", ondelete="CASCADE"), nullable=False)
+    dayOfWeek = Column(String(191), nullable=False)
+    timeSlotId = Column(String(191), ForeignKey("TimeSlot.id", ondelete="CASCADE"), nullable=False)
+    subjectId = Column(String(191), ForeignKey("Subject.id", ondelete="SET NULL"), nullable=True)
+    facultyId = Column(String(191), ForeignKey("User.id", ondelete="SET NULL"), nullable=True)
+    roomId = Column(String(191), ForeignKey("Room.id", ondelete="SET NULL"), nullable=True)
+    labId = Column(String(191), ForeignKey("Laboratory.id", ondelete="SET NULL"), nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    timetable = relationship("Timetable", back_populates="entries")
+    timeSlot = relationship("TimeSlot", back_populates="timetableEntries")
+    subject = relationship("Subject", back_populates="timetableEntries")
+    faculty = relationship("User", back_populates="timetableEntries")
+    room = relationship("Room", back_populates="timetableEntries")
+    lab = relationship("Laboratory", back_populates="timetableEntries")
+    substituteRequests = relationship("SubstituteFaculty", back_populates="timetableEntry", cascade="all, delete-orphan")
+
+class SubstituteFaculty(Base):
+    __tablename__ = "SubstituteFaculty"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    date = Column(DateTime, nullable=False)
+    timetableEntryId = Column(String(191), ForeignKey("TimetableEntry.id", ondelete="CASCADE"), nullable=False)
+    originalFacultyId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    substituteFacultyId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    status = Column(String(191), default="PENDING", nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    timetableEntry = relationship("TimetableEntry", back_populates="substituteRequests")
+    originalFaculty = relationship("User", foreign_keys=[originalFacultyId], back_populates="substituteRequestsOriginal")
+    substituteFaculty = relationship("User", foreign_keys=[substituteFacultyId], back_populates="substituteRequestsSubstitute")
+
+class TimetableApproval(Base):
+    __tablename__ = "TimetableApproval"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    timetableId = Column(String(191), ForeignKey("Timetable.id", ondelete="CASCADE"), nullable=False)
+    userId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    stage = Column(String(191), nullable=False)
+    status = Column(String(191), nullable=False)
+    remarks = Column(Text, nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    timetable = relationship("Timetable", back_populates="approvals")
+    user = relationship("User", back_populates="timetableApprovals")

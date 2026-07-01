@@ -21,7 +21,8 @@ import {
   PersonAdd as PersonAddIcon, 
   People as PeopleIcon, 
   ExitToApp as ExitIcon,
-  School as SchoolIcon
+  School as SchoolIcon,
+  CalendarToday as CalendarTodayIcon
 } from '@mui/icons-material';
 
 const DRAWER_WIDTH = 260;
@@ -90,19 +91,22 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       { text: 'Overview', icon: <DashboardIcon />, path: '/dashboard' },
       { text: 'Provision User', icon: <PersonAddIcon />, path: '/create-user' },
       { text: 'Directory', icon: <PeopleIcon />, path: '/users' },
-      { text: 'Academics', icon: <SchoolIcon />, path: '/academics' }
+      { text: 'Academics', icon: <SchoolIcon />, path: '/academics' },
+      { text: 'Timetables', icon: <CalendarTodayIcon />, path: '/timetable-dashboard' }
     );
   } else if (user?.role === 'STUDENT') {
     menuItems.push(
       { text: 'Overview', icon: <DashboardIcon />, path: '/' },
       { text: 'Student Portal', icon: <SchoolIcon />, path: '/student-dashboard' },
-      { text: 'Academics', icon: <SchoolIcon />, path: '/academics' }
+      { text: 'Academics', icon: <SchoolIcon />, path: '/academics' },
+      { text: 'Timetables', icon: <CalendarTodayIcon />, path: '/timetable-dashboard' }
     );
   } else if (user?.role === 'TEACHER') {
     menuItems.push(
       { text: 'Overview', icon: <DashboardIcon />, path: '/' },
       { text: 'Faculty Portal', icon: <SchoolIcon />, path: '/faculty-dashboard' },
-      { text: 'Academics', icon: <SchoolIcon />, path: '/academics' }
+      { text: 'Academics', icon: <SchoolIcon />, path: '/academics' },
+      { text: 'Timetables', icon: <CalendarTodayIcon />, path: '/timetable-dashboard' }
     );
   } else {
     // Default fallback menu

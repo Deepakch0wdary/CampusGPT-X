@@ -52,42 +52,40 @@ Every endpoint returns a unified JSON envelope:
 
 ---
 
-### 5. Faculty Portal Module (New in Day 6)
-
-#### Faculty Dashboard
+### 5. Faculty Portal Module
 * `GET /api/v1/faculty/dashboard` - Retrieve welcome cards, timetable metrics, assigned subject rosters, and pending evaluations statistics.
 
-#### Faculty Profile
-* `GET /api/v1/faculty/profile` - Fetch current user profile.
-* `PUT /api/v1/faculty/profile` - Update qualifications, specialties, office hours, and emergency contact details.
+---
 
-#### Class Management
-* `GET /api/v1/faculty/classes` - List assigned subjects, sections, and classroom strengths.
-* `GET /api/v1/faculty/classes/{id}/students` - Retrieve student roster of a class section (ownership protected).
+### 6. Smart Timetable Module (New in Day 7)
 
-#### Assignment Management
-* `POST /api/v1/faculty/assignments` - Publish an assignment template. Auto-provisions matching submissions for class students.
-* `GET /api/v1/faculty/assignments` - List self-authored assignment templates.
-* `GET /api/v1/faculty/assignments/{id}/submissions` - Pull student homework submission URLs and grading status.
-* `DELETE /api/v1/faculty/assignments/{id}` - Revoke/Delete assignment definition.
+#### Calendar Configurations
+* `POST /api/v1/timetable/calendar` - Setup calendar config (working days).
+* `GET /api/v1/timetable/calendar` - Fetch current active calendar parameters.
+* `POST /api/v1/timetable/calendar/events` - Add holidays, exam days, and event dates.
+* `GET /api/v1/timetable/calendar/events` - List calendar events order by date.
 
-#### Quiz Console
-* `POST /api/v1/faculty/quizzes` - Publish scheduled tests with question bank JSON structures.
-* `GET /api/v1/faculty/quizzes` - Retrieve self-scheduled quiz list.
+#### Time Slot Configurations
+* `POST /api/v1/timetable/slots` - Create custom period time slots (overlaps validated).
+* `GET /api/v1/timetable/slots` - List time slots ordered by start times.
 
-#### Marks Grading Registry
-* `POST /api/v1/faculty/marks/grade` - Submit grade sheets, internal marks, and external exam scores for students (ownership verified).
+#### Conflict Validation Check
+* `POST /api/v1/timetable/validate` - Checks a target cell mapping proposal against published schedules. Returns clashes found.
 
-#### Notes Upload
-* `POST /api/v1/faculty/notes` - Post reference URLs linking notes (PPT/PDF/DOCX) to courses.
-* `GET /api/v1/faculty/notes` - Retrieve notes list.
+#### Timetable Grid Layouts CRUD
+* `POST /api/v1/timetable/grids` - Save timetable grid layout container header.
+* `GET /api/v1/timetable/grids` - List all grids.
+* `GET /api/v1/timetable/grids/{id}` - Load grid details and entry cell lists.
+* `POST /api/v1/timetable/grids/{id}/entries` - Map a cell (Subject, Room, Teacher) to a day and slot (conflicts pre-validated).
 
-#### Leave Tracker
-* `POST /api/v1/faculty/leaves` - Apply for casual/sick/earned leaves.
-* `GET /api/v1/faculty/leaves` - Pull leave tracking application logs.
+#### Role-Specific Schedules Queries
+* `GET /api/v1/timetable/student/schedule` - Fetch personal weekly schedule for a student.
+* `GET /api/v1/timetable/faculty/schedule` - Fetch personal weekly teaching schedule for an instructor.
 
-#### Attendance Preparation
-* `POST /api/v1/faculty/attendance/prepare` - Select classroom parameters and request dynamic Session ID generation headers.
+#### Substitute swapping
+* `POST /api/v1/timetable/substitute` - Generate substitute faculty swap requests.
+* `GET /api/v1/timetable/substitute` - Retrieve all substitutions logs.
+* `POST /api/v1/timetable/substitute/{id}/approve` - Approve dynamic teacher swapping.
 
-#### Notifications Alerts
-* `GET /api/v1/faculty/notifications` - Retrieve staff bullet alerts.
+#### Approvals workflow
+* `POST /api/v1/timetable/approval` - Progress layout headers along approval stage checks (Draft -> Dept -> Academic -> Master Admin published status).
