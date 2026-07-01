@@ -1,0 +1,75 @@
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+dist/
+build/
+.svelte-kit/
+.next/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.venv/
+venv/
+ENV/
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+dev.db
+dev.db-journal
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Logs and Uploads
+logs/*
+!logs/.gitkeep
+uploads/*
+!uploads/.gitkeep
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Testing and Coverage
+.pytest_cache/
+coverage/
+

@@ -1,0 +1,163 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DISABLED
+  PENDING
+}
+
+model User {
+  id                  String           @id @default(uuid())
+  email               String           @unique
+  username            String           @unique
+  passwordHash        String
+  name                String
+  roleId              String
+  role                Role             @relation(fields: [roleId], references: [id])
+  departmentId        String?
+  department          Department?      @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  sectionId           String?
+  section             Section?         @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  profile             UserProfile?
+  status              UserStatus       @default(ACTIVE)
+  isSuspended         Boolean          @default(false)
+  isDisabled          Boolean          @default(false)
+  mustChangePassword  Boolean          @default(true)
+  failedLoginAttempts Int              @default(0)
+  lockedUntil         DateTime?
+  verified            Boolean          @default(false)
+  userPermissions     UserPermission[]
+  sessions            UserSession[]
+  refreshTokens       RefreshToken[]
+  loginHistories      LoginHistory[]
+  auditLogs           AuditLog[]
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  @@index([email])
+  @@index([username])
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  users       User[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Permission {
+  id              String           @id @default(uuid())
+  name            String           @unique
+  description     String?
+  userPermissions UserPermission[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+model UserPermission {
+  id           String     @id @default(uuid())
+  userId       String
+  permissionId String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@unique([userId, permissionId])
+}
+
+model UserSession {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceInfo   String?
+  ipAddress    String?
+  lastActivity DateTime @default(now()) @updatedAt
+  expiresAt    DateTime
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model LoginHistory {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ipAddress  String?
+  deviceInfo String?
+  status     String
+  createdAt  DateTime @default(now())
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action     String
+  details    String?  @db.Text
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+}
+
+model UserProfile {
+  id            String       @id @default(uuid())
+  userId        String       @unique
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  phoneNumber   String?
+  bio           String?      @db.Text
+  address       String?      @db.Text
+  avatarUrl     String?
+  designationId String?
+  designation   Designation? @relation(fields: [designationId], references: [id], onDelete: SetNull)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+model Department {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  code      String    @unique
+  users     User[]
+  sections  Section[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Section {
+  id           String     @id @default(uuid())
+  name         String
+  code         String     @unique
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  users        User[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model Designation {
+  id           String        @id @default(uuid())
+  name         String        @unique
+  code         String        @unique
+  description  String?
+  userProfiles UserProfile[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
