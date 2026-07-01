@@ -39,6 +39,8 @@ model User {
   refreshTokens       RefreshToken[]
   loginHistories      LoginHistory[]
   auditLogs           AuditLog[]
+  facultyAssignments  FacultyAssignment[]
+  advisedSections     Section[]        @relation(name: "FacultyAdvisor")
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
 
@@ -132,24 +134,189 @@ model UserProfile {
 }
 
 model Department {
-  id        String    @id @default(uuid())
-  name      String    @unique
-  code      String    @unique
-  users     User[]
-  sections  Section[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id           String        @id @default(uuid())
+  name         String        @unique
+  code         String        @unique
+  description  String?
+  deanHod      String?
+  email        String?
+  phone        String?
+  building     String?
+  status       String        @default("ACTIVE")
+  users        User[]
+  programs     Program[]
+  courses      Course[]
+  subjects     Subject[]
+  sections     Section[]
+  rooms              Room[]
+  laboratories       Laboratory[]
+  facultyAssignments FacultyAssignment[]
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
 }
 
 model Section {
+  id                 String              @id @default(uuid())
+  name               String
+  capacity           Int
+  semesterId         String
+  semester           Semester            @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  departmentId       String
+  department         Department          @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  programId          String
+  program            Program             @relation(fields: [programId], references: [id], onDelete: Cascade)
+  facultyAdvisorId   String?
+  facultyAdvisor     User?               @relation(name: "FacultyAdvisor", fields: [facultyAdvisorId], references: [id], onDelete: SetNull)
+  academicYearId     String?
+  academicYear       AcademicYear?       @relation(fields: [academicYearId], references: [id], onDelete: SetNull)
+  users              User[]
+  facultyAssignments FacultyAssignment[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+}
+
+model AcademicYear {
+  id                   String              @id @default(uuid())
+  name                 String              @unique
+  startDate            DateTime
+  endDate              DateTime
+  status               String              @default("ACTIVE") // ACTIVE, INACTIVE
+  currentAcademicYear  Boolean             @default(false)
+  semesters            Semester[]
+  sections             Section[]
+  facultyAssignments   FacultyAssignment[]
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+}
+
+model Program {
   id           String     @id @default(uuid())
-  name         String
+  name         String     @unique
   code         String     @unique
+  description  String?
   departmentId String
   department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
-  users        User[]
+  courses      Course[]
+  sections     Section[]
+  semesters    Semester[]
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
+}
+
+model Course {
+  id           String     @id @default(uuid())
+  code         String     @unique
+  name         String
+  credits      Int
+  duration     String
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  programId    String
+  program      Program    @relation(fields: [programId], references: [id], onDelete: Cascade)
+  description  String?
+  status       String     @default("ACTIVE")
+  subjects     Subject[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model Semester {
+  id                 String              @id @default(uuid())
+  semesterNumber     Int
+  academicYearId     String
+  academicYear       AcademicYear        @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  programId          String
+  program            Program             @relation(fields: [programId], references: [id], onDelete: Cascade)
+  startDate          DateTime
+  endDate            DateTime
+  currentSemester    Boolean             @default(false)
+  subjects           Subject[]
+  sections           Section[]
+  facultyAssignments FacultyAssignment[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+}
+
+model Subject {
+  id                 String              @id @default(uuid())
+  code               String              @unique
+  name               String
+  credits            Int
+  theoryHours        Int                 @default(0)
+  labHours           Int                 @default(0)
+  elective           Boolean             @default(false)
+  mandatory          Boolean             @default(true)
+  departmentId       String
+  department         Department          @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  semesterId         String
+  semester           Semester            @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  courseId           String
+  course             Course              @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  facultyAssignments FacultyAssignment[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+}
+
+model Building {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  code        String   @unique
+  floors      Int
+  description String?
+  rooms       Room[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Room {
+  id               String     @id @default(uuid())
+  roomNumber       String     @unique
+  roomType         String     @default("CLASSROOM") // CLASSROOM, SEMINAR_HALL, AUDITORIUM
+  capacity         Int
+  buildingId       String
+  building         Building   @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  floor            Int
+  projector        Boolean    @default(false)
+  smartBoard       Boolean    @default(false)
+  airConditioning  Boolean    @default(false)
+  status           String     @default("ACTIVE")
+  departmentId     String?
+  department       Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+}
+
+model Laboratory {
+  id           String     @id @default(uuid())
+  labName      String     @unique
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  capacity     Int
+  systems      Int        @default(0)
+  software     String?    @db.Text
+  labAssistant String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model FacultyAssignment {
+  id             String        @id @default(uuid())
+  departmentId   String
+  department     Department    @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  subjectId      String
+  subject        Subject       @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  facultyId      String
+  faculty        User          @relation(fields: [facultyId], references: [id], onDelete: Cascade)
+  sectionId      String
+  section        Section       @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  semesterId     String
+  semester       Semester      @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  academicYearId String
+  academicYear   AcademicYear  @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@unique([facultyId, subjectId, sectionId, semesterId, academicYearId])
 }
 
 model Designation {

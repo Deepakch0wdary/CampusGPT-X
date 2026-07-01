@@ -71,7 +71,7 @@ class User(Base):
 
     role = relationship("Role", back_populates="users")
     department = relationship("Department", back_populates="users")
-    section = relationship("Section", back_populates="users")
+    section = relationship("Section", back_populates="users", foreign_keys=[sectionId])
     profile = relationship("UserProfile", uselist=False, back_populates="user", cascade="all, delete-orphan")
     
     userPermissions = relationship("UserPermission", back_populates="user", cascade="all, delete-orphan")
@@ -79,6 +79,8 @@ class User(Base):
     refreshTokens = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")
     loginHistories = relationship("LoginHistory", back_populates="user", cascade="all, delete-orphan")
     auditLogs = relationship("AuditLog", back_populates="user", cascade="all, delete-orphan")
+    facultyAssignments = relationship("FacultyAssignment", back_populates="faculty", cascade="all, delete-orphan")
+    advisedSections = relationship("Section", back_populates="facultyAdvisor", foreign_keys="[Section.facultyAdvisorId]")
 
 class UserProfile(Base):
     __tablename__ = "UserProfile"
@@ -100,23 +102,197 @@ class Department(Base):
     id = Column(String(191), primary_key=True, default=generate_uuid)
     name = Column(String(191), unique=True, nullable=False)
     code = Column(String(191), unique=True, nullable=False)
+    description = Column(String(191), nullable=True)
+    deanHod = Column(String(191), nullable=True)
+    email = Column(String(191), nullable=True)
+    phone = Column(String(191), nullable=True)
+    building = Column(String(191), nullable=True)
+    status = Column(String(191), default="ACTIVE", nullable=False)
     createdAt = Column(DateTime, default=datetime.utcnow)
     updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     users = relationship("User", back_populates="department")
+    programs = relationship("Program", back_populates="department", cascade="all, delete-orphan")
+    courses = relationship("Course", back_populates="department", cascade="all, delete-orphan")
+    subjects = relationship("Subject", back_populates="department", cascade="all, delete-orphan")
     sections = relationship("Section", back_populates="department", cascade="all, delete-orphan")
+    rooms = relationship("Room", back_populates="department", cascade="all, delete-orphan")
+    laboratories = relationship("Laboratory", back_populates="department", cascade="all, delete-orphan")
+    facultyAssignments = relationship("FacultyAssignment", back_populates="department", cascade="all, delete-orphan")
 
 class Section(Base):
     __tablename__ = "Section"
     id = Column(String(191), primary_key=True, default=generate_uuid)
     name = Column(String(191), nullable=False)
-    code = Column(String(191), unique=True, nullable=False)
+    capacity = Column(Integer, nullable=False)
+    semesterId = Column(String(191), ForeignKey("Semester.id", ondelete="CASCADE"), nullable=False)
     departmentId = Column(String(191), ForeignKey("Department.id", ondelete="CASCADE"), nullable=False)
+    programId = Column(String(191), ForeignKey("Program.id", ondelete="CASCADE"), nullable=False)
+    facultyAdvisorId = Column(String(191), ForeignKey("User.id", ondelete="SET NULL"), nullable=True)
+    academicYearId = Column(String(191), ForeignKey("AcademicYear.id", ondelete="SET NULL"), nullable=True)
     createdAt = Column(DateTime, default=datetime.utcnow)
     updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     department = relationship("Department", back_populates="sections")
-    users = relationship("User", back_populates="section")
+    semester = relationship("Semester", back_populates="sections")
+    program = relationship("Program", back_populates="sections")
+    facultyAdvisor = relationship("User", back_populates="advisedSections", foreign_keys=[facultyAdvisorId])
+    academicYear = relationship("AcademicYear", back_populates="sections")
+    users = relationship("User", back_populates="section", foreign_keys=[User.sectionId])
+    facultyAssignments = relationship("FacultyAssignment", back_populates="section", cascade="all, delete-orphan")
+
+class AcademicYear(Base):
+    __tablename__ = "AcademicYear"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    name = Column(String(191), unique=True, nullable=False)
+    startDate = Column(DateTime, nullable=False)
+    endDate = Column(DateTime, nullable=False)
+    status = Column(String(191), default="ACTIVE", nullable=False)
+    currentAcademicYear = Column(Boolean, default=False, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    semesters = relationship("Semester", back_populates="academicYear", cascade="all, delete-orphan")
+    sections = relationship("Section", back_populates="academicYear")
+    facultyAssignments = relationship("FacultyAssignment", back_populates="academicYear", cascade="all, delete-orphan")
+
+class Program(Base):
+    __tablename__ = "Program"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    name = Column(String(191), unique=True, nullable=False)
+    code = Column(String(191), unique=True, nullable=False)
+    description = Column(String(191), nullable=True)
+    departmentId = Column(String(191), ForeignKey("Department.id", ondelete="CASCADE"), nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    department = relationship("Department", back_populates="programs")
+    courses = relationship("Course", back_populates="program", cascade="all, delete-orphan")
+    sections = relationship("Section", back_populates="program", cascade="all, delete-orphan")
+    semesters = relationship("Semester", back_populates="program", cascade="all, delete-orphan")
+
+class Course(Base):
+    __tablename__ = "Course"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    code = Column(String(191), unique=True, nullable=False)
+    name = Column(String(191), nullable=False)
+    credits = Column(Integer, nullable=False)
+    duration = Column(String(191), nullable=False)
+    departmentId = Column(String(191), ForeignKey("Department.id", ondelete="CASCADE"), nullable=False)
+    programId = Column(String(191), ForeignKey("Program.id", ondelete="CASCADE"), nullable=False)
+    description = Column(String(191), nullable=True)
+    status = Column(String(191), default="ACTIVE", nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    department = relationship("Department", back_populates="courses")
+    program = relationship("Program", back_populates="courses")
+    subjects = relationship("Subject", back_populates="course", cascade="all, delete-orphan")
+
+class Semester(Base):
+    __tablename__ = "Semester"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    semesterNumber = Column(Integer, nullable=False)
+    academicYearId = Column(String(191), ForeignKey("AcademicYear.id", ondelete="CASCADE"), nullable=False)
+    programId = Column(String(191), ForeignKey("Program.id", ondelete="CASCADE"), nullable=False)
+    startDate = Column(DateTime, nullable=False)
+    endDate = Column(DateTime, nullable=False)
+    currentSemester = Column(Boolean, default=False, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    academicYear = relationship("AcademicYear", back_populates="semesters")
+    program = relationship("Program", back_populates="semesters")
+    subjects = relationship("Subject", back_populates="semester", cascade="all, delete-orphan")
+    sections = relationship("Section", back_populates="semester", cascade="all, delete-orphan")
+    facultyAssignments = relationship("FacultyAssignment", back_populates="semester", cascade="all, delete-orphan")
+
+class Subject(Base):
+    __tablename__ = "Subject"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    code = Column(String(191), unique=True, nullable=False)
+    name = Column(String(191), nullable=False)
+    credits = Column(Integer, nullable=False)
+    theoryHours = Column(Integer, default=0, nullable=False)
+    labHours = Column(Integer, default=0, nullable=False)
+    elective = Column(Boolean, default=False, nullable=False)
+    mandatory = Column(Boolean, default=True, nullable=False)
+    departmentId = Column(String(191), ForeignKey("Department.id", ondelete="CASCADE"), nullable=False)
+    semesterId = Column(String(191), ForeignKey("Semester.id", ondelete="CASCADE"), nullable=False)
+    courseId = Column(String(191), ForeignKey("Course.id", ondelete="CASCADE"), nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    department = relationship("Department", back_populates="subjects")
+    semester = relationship("Semester", back_populates="subjects")
+    course = relationship("Course", back_populates="subjects")
+    facultyAssignments = relationship("FacultyAssignment", back_populates="subject", cascade="all, delete-orphan")
+
+class Building(Base):
+    __tablename__ = "Building"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    name = Column(String(191), unique=True, nullable=False)
+    code = Column(String(191), unique=True, nullable=False)
+    floors = Column(Integer, nullable=False)
+    description = Column(String(191), nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    rooms = relationship("Room", back_populates="building", cascade="all, delete-orphan")
+
+class Room(Base):
+    __tablename__ = "Room"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    roomNumber = Column(String(191), unique=True, nullable=False)
+    roomType = Column(String(191), default="CLASSROOM", nullable=False)
+    capacity = Column(Integer, nullable=False)
+    buildingId = Column(String(191), ForeignKey("Building.id", ondelete="CASCADE"), nullable=False)
+    floor = Column(Integer, nullable=False)
+    projector = Column(Boolean, default=False, nullable=False)
+    smartBoard = Column(Boolean, default=False, nullable=False)
+    airConditioning = Column(Boolean, default=False, nullable=False)
+    status = Column(String(191), default="ACTIVE", nullable=False)
+    departmentId = Column(String(191), ForeignKey("Department.id", ondelete="SET NULL"), nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    building = relationship("Building", back_populates="rooms")
+    department = relationship("Department", back_populates="rooms")
+
+class Laboratory(Base):
+    __tablename__ = "Laboratory"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    labName = Column(String(191), unique=True, nullable=False)
+    departmentId = Column(String(191), ForeignKey("Department.id", ondelete="CASCADE"), nullable=False)
+    capacity = Column(Integer, nullable=False)
+    systems = Column(Integer, default=0, nullable=False)
+    software = Column(Text, nullable=True)
+    labAssistant = Column(String(191), nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    department = relationship("Department", back_populates="laboratories")
+
+class FacultyAssignment(Base):
+    __tablename__ = "FacultyAssignment"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    departmentId = Column(String(191), ForeignKey("Department.id", ondelete="CASCADE"), nullable=False)
+    subjectId = Column(String(191), ForeignKey("Subject.id", ondelete="CASCADE"), nullable=False)
+    facultyId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    sectionId = Column(String(191), ForeignKey("Section.id", ondelete="CASCADE"), nullable=False)
+    semesterId = Column(String(191), ForeignKey("Semester.id", ondelete="CASCADE"), nullable=False)
+    academicYearId = Column(String(191), ForeignKey("AcademicYear.id", ondelete="CASCADE"), nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (UniqueConstraint("facultyId", "subjectId", "sectionId", "semesterId", "academicYearId", name="FacultyAssignment_unique_key"),)
+
+    department = relationship("Department", back_populates="facultyAssignments")
+    subject = relationship("Subject", back_populates="facultyAssignments")
+    faculty = relationship("User", back_populates="facultyAssignments")
+    section = relationship("Section", back_populates="facultyAssignments")
+    semester = relationship("Semester", back_populates="facultyAssignments")
+    academicYear = relationship("AcademicYear", back_populates="facultyAssignments")
 
 class Designation(Base):
     __tablename__ = "Designation"

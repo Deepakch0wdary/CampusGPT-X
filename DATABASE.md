@@ -20,6 +20,15 @@ This document describes the database design, tables, relations, and optimization
 | **Department** | `Department` | Academic/Administration Departments. | `id` (PK), `name` (UQ), `code` (UQ) |
 | **Section** | `Section` | Student classroom divisions. | `id` (PK), `code` (UQ) |
 | **Designation** | `Designation` | Staff designation tags (e.g. Professor). | `id` (PK), `name` (UQ), `code` (UQ) |
+| **AcademicYear** | `AcademicYear` | Institutional calendar periods. | `id` (PK), `name` (UQ) |
+| **Program** | `Program` | Academic curricula options (e.g. B.Tech). | `id` (PK), `name` (UQ), `code` (UQ) |
+| **Course** | `Course` | Particular curricula course offerings. | `id` (PK), `code` (UQ) |
+| **Semester** | `Semester` | Particular term blocks under programs. | `id` (PK) |
+| **Subject** | `Subject` | Academic syllabus subjects. | `id` (PK), `code` (UQ) |
+| **Building** | `Building` | Campus building structures. | `id` (PK), `name` (UQ), `code` (UQ) |
+| **Room** | `Room` | Classrooms or laboratories inside buildings. | `id` (PK), `roomNumber` (UQ) |
+| **Laboratory** | `Laboratory` | Multi-computer department labs. | `id` (PK), `labName` (UQ) |
+| **FacultyAssignment**| `FacultyAssignment` | Map instructors to sections/subjects. | `id` (PK), `[facultyId, subjectId, sectionId, semesterId, academicYearId]` (UQ) |
 
 ---
 
@@ -37,14 +46,17 @@ This document describes the database design, tables, relations, and optimization
 4. **User ↔ UserProfile**:
    * One-to-one relationship.
    * `UserProfile.userId` references `User.id` with `onDelete: Cascade`.
-5. **User Sessions, Refresh Tokens, and Login History**:
-   * One-to-many relationships.
-   * Cascade delete on user accounts deletes all associated sessions, logs, and tokens (`onDelete: Cascade`).
+5. **Academic Structure Cascading Hierarchy**:
+   * Deleting a `Department` cascades to delete all its `Program` mappings.
+   * Deleting a `Program` cascades to delete all its `Course` and `Semester` divisions.
+   * Deleting a `Semester` cascades to delete all its `Section` and `Subject` entries.
+   * Deleting a `Building` cascades to delete all its nested `Room` locations.
+6. **FacultyAssignment Constraints**:
+   * Referencing department, subjects, sections, and semesters features `onDelete: Cascade` rules to prevent orphaned schedule records.
 
 ---
 
-## ⚡ Index Optimizations
+## ⚡ Index & Performance Optimizations
 
-To support high performance for standard search, filtering, and authorization query operations:
 * **Email & Username**: Configured indexes on `User.email` and `User.username` to optimize login credentials lookup.
-* **Foreign Keys**: Managed relationships with explicit joins.
+* **FacultyAssignment Unique Combo Index**: Unique index on `[facultyId, subjectId, sectionId, semesterId, academicYearId]` speeds up timetable conflict checks and enforces mapping integrity.

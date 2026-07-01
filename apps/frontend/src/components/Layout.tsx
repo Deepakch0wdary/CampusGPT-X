@@ -20,7 +20,8 @@ import {
   Dashboard as DashboardIcon, 
   PersonAdd as PersonAddIcon, 
   People as PeopleIcon, 
-  ExitToApp as ExitIcon 
+  ExitToApp as ExitIcon,
+  School as SchoolIcon
 } from '@mui/icons-material';
 
 const DRAWER_WIDTH = 260;
@@ -88,12 +89,14 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     menuItems.push(
       { text: 'Overview', icon: <DashboardIcon />, path: '/dashboard' },
       { text: 'Provision User', icon: <PersonAddIcon />, path: '/create-user' },
-      { text: 'Directory', icon: <PeopleIcon />, path: '/users' }
+      { text: 'Directory', icon: <PeopleIcon />, path: '/users' },
+      { text: 'Academics', icon: <SchoolIcon />, path: '/academics' }
     );
   } else {
     // Default fallback menu
     menuItems.push(
-      { text: 'Overview', icon: <DashboardIcon />, path: '/' }
+      { text: 'Overview', icon: <DashboardIcon />, path: '/' },
+      { text: 'Academics', icon: <SchoolIcon />, path: '/academics' }
     );
   }
 

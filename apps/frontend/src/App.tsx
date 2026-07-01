@@ -14,6 +14,7 @@ import ImportUsers from './pages/ImportUsers';
 import NotFound from './pages/NotFound';
 import Forbidden from './pages/Forbidden';
 import ServerError from './pages/ServerError';
+import AcademicDashboard from './pages/AcademicDashboard';
 
 // Helper validators for local session tracking
 const isAuthenticated = () => !!localStorage.getItem('access_token');
@@ -86,6 +87,12 @@ const App: React.FC = () => {
             <Route path="/" element={
               <PrivateRoute>
                 <Home />
+              </PrivateRoute>
+            } />
+
+            <Route path="/academics" element={
+              <PrivateRoute>
+                <AcademicDashboard />
               </PrivateRoute>
             } />
 

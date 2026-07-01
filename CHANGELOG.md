@@ -4,6 +4,24 @@ All notable changes to the **CampusGPT X** system are logged in this file.
 
 ---
 
+## [4.0-Complete] - 2026-07-01
+### Added
+* Complete Academic Structure Module including:
+  * **Academic Year**: Start/End dates, Current Academic Year toggles.
+  * **Department**: Codes, deanHod name fields.
+  * **Program**: Curriculums mapping (B.Tech, M.Tech, MBA, MCA, BCA, custom).
+  * **Course**: Course codes, credits, durations.
+  * **Semester**: Start/End dates, current semesters toggles.
+  * **Subject**: theory/lab hours, elective vs. mandatory markers.
+  * **Section**: Classroom section divisions and capacities.
+  * **Buildings & Rooms**: Infrastructure mapping, seat capacity, AC, Projector indicators.
+  * **Laboratories**: Systems count and software environments.
+  * **Faculty Assignment**: Administrative workflow maps connecting department, subjects, sections, and semesters to instructors.
+* Interactive high-fidelity React `AcademicDashboard.tsx` view with tab panels and modal dialogs.
+* Business validation layer preventing duplicates and active entity deletions.
+
+---
+
 ## [3.5-Stable] - 2026-07-01
 ### Added
 * Custom error boundary views for:

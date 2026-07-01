@@ -172,4 +172,5 @@ For detailed guides and deep dives:
 * [DATABASE.md](file:///c:/Users/DELL/OneDrive/Desktop/CampusGPT/DATABASE.md) — Schema definitions, keys, and cascades.
 * [ARCHITECTURE.md](file:///c:/Users/DELL/OneDrive/Desktop/CampusGPT/ARCHITECTURE.md) — Multi-tier micro-services diagrams and design choices.
 * [CHANGELOG.md](file:///c:/Users/DELL/OneDrive/Desktop/CampusGPT/CHANGELOG.md) — Complete release milestones tracking.
+* [academic_structure.md](file:///C:/Users/DELL/.gemini/antigravity-ide/brain/6814b530-b666-4f74-bfb2-40f328843fb5/academic_structure.md) — Academic structure domain workflows.
 
