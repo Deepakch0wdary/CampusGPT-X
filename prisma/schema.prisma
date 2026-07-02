@@ -79,6 +79,12 @@ model User {
   hallTickets                  HallTicket[]
   approvedQuestionPapers       QuestionPaper[]          @relation("QuestionPaperApprover")
   examAudits                   ExamAudit[]
+  resultsCompiled              Result[]
+  transcripts                  Transcript[]
+  revaluationRequests          RevaluationRequest[]     @relation("StudentRevaluation")
+  revaluationApproved          RevaluationRequest[]     @relation("FacultyChecker")
+  meritList                    MeritList[]
+  resultAudits                 ResultAudit[]
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
 
@@ -197,6 +203,7 @@ model Department {
   attendanceSessions AttendanceSession[]
   assignments        Assignment[]
   exams              Exam[]
+  resultAnalytics    ResultAnalytics[]
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
 }
@@ -241,6 +248,8 @@ model AcademicYear {
   attendanceSessions   AttendanceSession[]
   assignments          Assignment[]
   exams                Exam[]
+  results              Result[]
+  gradeSchemes         GradeScheme[]
   createdAt            DateTime            @default(now())
   updatedAt            DateTime            @updatedAt
 }
@@ -258,6 +267,7 @@ model Program {
   attendanceSessions AttendanceSession[]
   assignments        Assignment[]
   exams              Exam[]
+  gradeSchemes       GradeScheme[]
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 }
@@ -327,6 +337,7 @@ model Subject {
   defaulters          DefaulterList[]
   subjectAssignments  Assignment[]
   subjectExams        Exam[]
+  resultDetails       ResultDetail[]
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
 }
@@ -1137,5 +1148,142 @@ model ExamAudit {
   action    String   // CREATE_EXAM, UPDATE_EXAM, SCHEDULE_EXAM, DOWNLOAD_HALL_TICKET, UPLOAD_QUESTION_PAPER, APPROVE_QUESTION_PAPER
   ipAddress String?
   userAgent String?
+  createdAt DateTime @default(now())
+}
+
+model Result {
+  id             String         @id @default(uuid())
+  studentId      String
+  student        User           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  academicYearId String
+  academicYear   AcademicYear   @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  semesterNumber Int
+  sgpa           Float          @default(0.0)
+  cgpa           Float          @default(0.0)
+  totalMarks     Float          @default(0.0)
+  percentage     Float          @default(0.0)
+  creditsEarned  Int            @default(0)
+  status         String         @default("DRAFT") // DRAFT, DEPT_REVIEW, EXAM_CELL_APPROVED, PUBLISHED, ARCHIVED, ROLLBACK
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  details        ResultDetail[]
+
+  @@unique([studentId, academicYearId, semesterNumber])
+}
+
+model ResultDetail {
+  id                 String               @id @default(uuid())
+  resultId           String
+  result             Result               @relation(fields: [resultId], references: [id], onDelete: Cascade)
+  subjectId          String
+  subject            Subject              @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  internalMarks      Float                @default(0.0)
+  assignmentMarks    Float                @default(0.0)
+  labMarks           Float                @default(0.0)
+  practicalMarks     Float                @default(0.0)
+  projectMarks       Float                @default(0.0)
+  semesterExamMarks  Float                @default(0.0)
+  graceMarks         Float                @default(0.0)
+  moderationMarks    Float                @default(0.0)
+  totalMarks         Float                @default(0.0)
+  grade              String               @default("F")
+  gradePoint         Float                @default(0.0)
+  passFail           String               @default("FAIL") // PASS, FAIL
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  revaluationRequests RevaluationRequest[]
+
+  @@unique([resultId, subjectId])
+}
+
+model GradeScheme {
+  id             String          @id @default(uuid())
+  academicYearId String
+  academicYear   AcademicYear    @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  programId      String
+  program        Program         @relation(fields: [programId], references: [id], onDelete: Cascade)
+  gradeScale     String          @default("10-POINT") // 10-POINT, 4-POINT
+  creditSystem   String          @default("CHOICE_BASED")
+  graceRules     String?         @db.Text
+  passingMarks   Float           @default(40.0)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  boundaries     GradeBoundary[]
+}
+
+model GradeBoundary {
+  id            String      @id @default(uuid())
+  gradeSchemeId String
+  gradeScheme   GradeScheme @relation(fields: [gradeSchemeId], references: [id], onDelete: Cascade)
+  letterGrade   String
+  gradePoint    Float
+  minPercentage Float
+  maxPercentage Float
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model Transcript {
+  id               String   @id @default(uuid())
+  studentId        String
+  student          User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  transcriptType   String   // SEMESTER, CONSOLIDATED
+  semesterNumber   Int?
+  qrCodeValue      String   @unique
+  digitalSignature String
+  issueDate        DateTime @default(now())
+  isVerified       Boolean  @default(true)
+  createdAt        DateTime @default(now())
+}
+
+model RevaluationRequest {
+  id             String       @id @default(uuid())
+  resultDetailId String
+  resultDetail   ResultDetail @relation(fields: [resultDetailId], references: [id], onDelete: Cascade)
+  studentId      String
+  student        User         @relation(name: "StudentRevaluation", fields: [studentId], references: [id], onDelete: Cascade)
+  requestType    String       // REVALUATION, PHOTOCOPY
+  status         String       @default("PENDING") // PENDING, APPROVED, REJECTED
+  paymentStatus  String       @default("PENDING") // PENDING, PAID
+  remarks        String?      @db.Text
+  originalMarks  Float
+  updatedMarks   Float?
+  facultyId      String?
+  faculty        User?        @relation(name: "FacultyChecker", fields: [facultyId], references: [id], onDelete: SetNull)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model ResultAnalytics {
+  id             String     @id @default(uuid())
+  departmentId   String
+  department     Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  semesterNumber Int
+  passPercentage Float
+  topPerformers  String     @db.Text // JSON list of top performers
+  backlogCount   Int
+  createdAt      DateTime   @default(now())
+}
+
+model MeritList {
+  id                  String   @id @default(uuid())
+  studentId           String
+  student             User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  semesterNumber      Int
+  departmentRank      Int
+  semesterRank        Int
+  universityRank      Int
+  cgpa                Float
+  isGoldMedalEligible Boolean  @default(false)
+  createdAt           DateTime @default(now())
+}
+
+model ResultAudit {
+  id        String   @id @default(uuid())
+  resultId  String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action    String   // MARKS_ENTRY, MARKS_MODERATION, RESULT_PUBLISH, TRANSCRIPT_GEN, REVALUATION_REQUEST, REVALUATION_APPROVE
+  details   String?  @db.Text
   createdAt DateTime @default(now())
 }

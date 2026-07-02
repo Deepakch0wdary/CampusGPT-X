@@ -119,6 +119,12 @@ class User(Base):
     hallTickets = relationship("HallTicket", back_populates="student", cascade="all, delete-orphan")
     approvedQuestionPapers = relationship("QuestionPaper", back_populates="approvedBy")
     examAudits = relationship("ExamAudit", back_populates="user", cascade="all, delete-orphan")
+    resultsCompiled = relationship("Result", back_populates="student", cascade="all, delete-orphan")
+    transcripts = relationship("Transcript", back_populates="student", cascade="all, delete-orphan")
+    revaluationRequests = relationship("RevaluationRequest", foreign_keys="[RevaluationRequest.studentId]", back_populates="student", cascade="all, delete-orphan")
+    revaluationApproved = relationship("RevaluationRequest", foreign_keys="[RevaluationRequest.facultyId]", back_populates="faculty")
+    meritList = relationship("MeritList", back_populates="student", cascade="all, delete-orphan")
+    resultAudits = relationship("ResultAudit", back_populates="user", cascade="all, delete-orphan")
 
 class UserProfile(Base):
     __tablename__ = "UserProfile"
@@ -165,6 +171,7 @@ class Department(Base):
     attendanceSessions = relationship("AttendanceSession", back_populates="department", cascade="all, delete-orphan")
     assignments = relationship("Assignment", back_populates="department", cascade="all, delete-orphan")
     exams = relationship("Exam", back_populates="department", cascade="all, delete-orphan")
+    resultAnalytics = relationship("ResultAnalytics", back_populates="department", cascade="all, delete-orphan")
 
 class Section(Base):
     __tablename__ = "Section"
@@ -211,6 +218,8 @@ class AcademicYear(Base):
     attendanceSessions = relationship("AttendanceSession", back_populates="academicYear", cascade="all, delete-orphan")
     assignments = relationship("Assignment", back_populates="academicYear", cascade="all, delete-orphan")
     exams = relationship("Exam", back_populates="academicYear", cascade="all, delete-orphan")
+    results = relationship("Result", back_populates="academicYear", cascade="all, delete-orphan")
+    gradeSchemes = relationship("GradeScheme", back_populates="academicYear", cascade="all, delete-orphan")
 
 class Program(Base):
     __tablename__ = "Program"
@@ -229,6 +238,7 @@ class Program(Base):
     attendanceSessions = relationship("AttendanceSession", back_populates="program", cascade="all, delete-orphan")
     assignments = relationship("Assignment", back_populates="program", cascade="all, delete-orphan")
     exams = relationship("Exam", back_populates="program", cascade="all, delete-orphan")
+    gradeSchemes = relationship("GradeScheme", back_populates="program", cascade="all, delete-orphan")
 
 class Course(Base):
     __tablename__ = "Course"
@@ -301,6 +311,7 @@ class Subject(Base):
     defaulters = relationship("DefaulterList", back_populates="subject", cascade="all, delete-orphan")
     subjectAssignments = relationship("Assignment", back_populates="subject", cascade="all, delete-orphan")
     subjectExams = relationship("Exam", back_populates="subject", cascade="all, delete-orphan")
+    resultDetails = relationship("ResultDetail", back_populates="subject", cascade="all, delete-orphan")
 
 class Building(Base):
     __tablename__ = "Building"
@@ -1213,5 +1224,152 @@ class ExamAudit(Base):
     exam = relationship("Exam", back_populates="audits")
     user = relationship("User", back_populates="examAudits")
 
+class Result(Base):
+    __tablename__ = "Result"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    studentId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    academicYearId = Column(String(191), ForeignKey("AcademicYear.id", ondelete="CASCADE"), nullable=False)
+    semesterNumber = Column(Integer, nullable=False)
+    sgpa = Column(Float, default=0.0, nullable=False)
+    cgpa = Column(Float, default=0.0, nullable=False)
+    totalMarks = Column(Float, default=0.0, nullable=False)
+    percentage = Column(Float, default=0.0, nullable=False)
+    creditsEarned = Column(Integer, default=0, nullable=False)
+    status = Column(String(191), default="DRAFT", nullable=False) # DRAFT, DEPT_REVIEW, EXAM_CELL_APPROVED, PUBLISHED, ARCHIVED, ROLLBACK
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    student = relationship("User", back_populates="resultsCompiled")
+    academicYear = relationship("AcademicYear", back_populates="results")
+    details = relationship("ResultDetail", back_populates="result", cascade="all, delete-orphan")
 
+    __table_args__ = (
+        UniqueConstraint("studentId", "academicYearId", "semesterNumber", name="uq_student_ay_sem"),
+    )
+
+class ResultDetail(Base):
+    __tablename__ = "ResultDetail"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    resultId = Column(String(191), ForeignKey("Result.id", ondelete="CASCADE"), nullable=False)
+    subjectId = Column(String(191), ForeignKey("Subject.id", ondelete="CASCADE"), nullable=False)
+    internalMarks = Column(Float, default=0.0, nullable=False)
+    assignmentMarks = Column(Float, default=0.0, nullable=False)
+    labMarks = Column(Float, default=0.0, nullable=False)
+    practicalMarks = Column(Float, default=0.0, nullable=False)
+    projectMarks = Column(Float, default=0.0, nullable=False)
+    semesterExamMarks = Column(Float, default=0.0, nullable=False)
+    graceMarks = Column(Float, default=0.0, nullable=False)
+    moderationMarks = Column(Float, default=0.0, nullable=False)
+    totalMarks = Column(Float, default=0.0, nullable=False)
+    grade = Column(String(191), default="F", nullable=False)
+    gradePoint = Column(Float, default=0.0, nullable=False)
+    passFail = Column(String(191), default="FAIL", nullable=False) # PASS, FAIL
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    result = relationship("Result", back_populates="details")
+    subject = relationship("Subject", back_populates="resultDetails")
+    revaluationRequests = relationship("RevaluationRequest", back_populates="resultDetail", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        UniqueConstraint("resultId", "subjectId", name="uq_result_subject"),
+    )
+
+class GradeScheme(Base):
+    __tablename__ = "GradeScheme"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    academicYearId = Column(String(191), ForeignKey("AcademicYear.id", ondelete="CASCADE"), nullable=False)
+    programId = Column(String(191), ForeignKey("Program.id", ondelete="CASCADE"), nullable=False)
+    gradeScale = Column(String(191), default="10-POINT", nullable=False) # 10-POINT, 4-POINT
+    creditSystem = Column(String(191), default="CHOICE_BASED", nullable=False)
+    graceRules = Column(Text, nullable=True)
+    passingMarks = Column(Float, default=40.0, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    academicYear = relationship("AcademicYear", back_populates="gradeSchemes")
+    program = relationship("Program", back_populates="gradeSchemes")
+    boundaries = relationship("GradeBoundary", back_populates="gradeScheme", cascade="all, delete-orphan")
+
+class GradeBoundary(Base):
+    __tablename__ = "GradeBoundary"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    gradeSchemeId = Column(String(191), ForeignKey("GradeScheme.id", ondelete="CASCADE"), nullable=False)
+    letterGrade = Column(String(191), nullable=False)
+    gradePoint = Column(Float, nullable=False)
+    minPercentage = Column(Float, nullable=False)
+    maxPercentage = Column(Float, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    gradeScheme = relationship("GradeScheme", back_populates="boundaries")
+
+class Transcript(Base):
+    __tablename__ = "Transcript"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    studentId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    transcriptType = Column(String(191), nullable=False) # SEMESTER, CONSOLIDATED
+    semesterNumber = Column(Integer, nullable=True)
+    qrCodeValue = Column(String(191), unique=True, nullable=False)
+    digitalSignature = Column(String(191), nullable=False)
+    issueDate = Column(DateTime, default=datetime.utcnow, nullable=False)
+    isVerified = Column(Boolean, default=True, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    student = relationship("User", back_populates="transcripts")
+
+class RevaluationRequest(Base):
+    __tablename__ = "RevaluationRequest"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    resultDetailId = Column(String(191), ForeignKey("ResultDetail.id", ondelete="CASCADE"), nullable=False)
+    studentId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    requestType = Column(String(191), nullable=False) # REVALUATION, PHOTOCOPY
+    status = Column(String(191), default="PENDING", nullable=False) # PENDING, APPROVED, REJECTED
+    paymentStatus = Column(String(191), default="PENDING", nullable=False) # PENDING, PAID
+    remarks = Column(Text, nullable=True)
+    originalMarks = Column(Float, nullable=False)
+    updatedMarks = Column(Float, nullable=True)
+    facultyId = Column(String(191), ForeignKey("User.id", ondelete="SET NULL"), nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    resultDetail = relationship("ResultDetail", back_populates="revaluationRequests")
+    student = relationship("User", foreign_keys=[studentId], back_populates="revaluationRequests")
+    faculty = relationship("User", foreign_keys=[facultyId], back_populates="revaluationApproved")
+
+class ResultAnalytics(Base):
+    __tablename__ = "ResultAnalytics"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    departmentId = Column(String(191), ForeignKey("Department.id", ondelete="CASCADE"), nullable=False)
+    semesterNumber = Column(Integer, nullable=False)
+    passPercentage = Column(Float, nullable=False)
+    topPerformers = Column(Text, nullable=False)
+    backlogCount = Column(Integer, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    department = relationship("Department", back_populates="resultAnalytics")
+
+class MeritList(Base):
+    __tablename__ = "MeritList"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    studentId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    semesterNumber = Column(Integer, nullable=False)
+    departmentRank = Column(Integer, nullable=False)
+    semesterRank = Column(Integer, nullable=False)
+    universityRank = Column(Integer, nullable=False)
+    cgpa = Column(Float, nullable=False)
+    isGoldMedalEligible = Column(Boolean, default=False, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    student = relationship("User", back_populates="meritList")
+
+class ResultAudit(Base):
+    __tablename__ = "ResultAudit"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    resultId = Column(String(191), nullable=True)
+    userId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    action = Column(String(191), nullable=False) # MARKS_ENTRY, MARKS_MODERATION, RESULT_PUBLISH, TRANSCRIPT_GEN, REVALUATION_REQUEST, REVALUATION_APPROVE
+    details = Column(Text, nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="resultAudits")

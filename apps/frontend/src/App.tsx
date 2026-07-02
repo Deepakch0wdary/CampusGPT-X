@@ -23,6 +23,7 @@ import QRAttendanceDashboard from './pages/QRAttendanceDashboard';
 import FaceRecognitionDashboard from './pages/FaceRecognitionDashboard';
 import AssignmentDashboard from './pages/AssignmentDashboard';
 import ExamDashboard from './pages/ExamDashboard';
+import ResultDashboard from './pages/ResultDashboard';
 
 // Helper validators for local session tracking
 const isAuthenticated = () => !!localStorage.getItem('access_token');
@@ -149,6 +150,12 @@ const App: React.FC = () => {
             <Route path="/exam-dashboard" element={
               <PrivateRoute>
                 <ExamDashboard />
+              </PrivateRoute>
+            } />
+
+            <Route path="/result-dashboard" element={
+              <PrivateRoute>
+                <ResultDashboard />
               </PrivateRoute>
             } />
 

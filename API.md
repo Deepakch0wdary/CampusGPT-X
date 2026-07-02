@@ -185,3 +185,30 @@ Every endpoint returns a unified JSON envelope:
 
 #### Statistics
 * `GET /api/v1/exams/statistics/summary` - Live dashboards statistics counts.
+
+---
+
+### 12. Result Management Module (New in Day 13)
+
+#### Grade Scheme Configurations
+* `POST /api/v1/results/schemes` - Admin configures custom Grade scale boundaries.
+* `GET /api/v1/results/schemes` - Lists program grade schemes.
+
+#### Mark Entry & Calculators
+* `POST /api/v1/results/marks` - Faculty enters marks for theory, assignments, labs, or grace. Automatically calculates overall GPA.
+
+#### Publishing Workflow
+* `POST /api/v1/results/{id}/publish` - Transitions card status (Draft, Dept Review, Publish).
+
+#### Transcripts & Grade Cards
+* `POST /api/v1/results/transcripts` - Generates transcript verification cards with digital signature signatures.
+* `GET /api/v1/results/transcripts` - Lists generated transcripts.
+
+#### Revaluations
+* `POST /api/v1/results/revaluation` - Students apply for revaluation.
+* `POST /api/v1/results/revaluation/{id}/review` - Instructors review revaluation requests.
+* `GET /api/v1/results/revaluation` - Lists active revaluations.
+
+#### Rankings & Merit
+* `GET /api/v1/results/merit-list` - Compiles rank lists by semester.
+* `GET /api/v1/results/analytics` - Compiles departmental analytics records.

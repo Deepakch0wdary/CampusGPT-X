@@ -27,7 +27,8 @@ import {
   QrCode2 as QrCodeIcon,
   Face as FaceIcon,
   Assignment as AssignmentIcon,
-  AssignmentTurnedIn as ExamIcon
+  AssignmentTurnedIn as ExamIcon,
+  Assessment as ResultIcon
 } from '@mui/icons-material';
 
 const DRAWER_WIDTH = 260;
@@ -102,7 +103,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       { text: 'QR Scanner', icon: <QrCodeIcon />, path: '/qr-attendance-dashboard' },
       { text: 'Face Scanner', icon: <FaceIcon />, path: '/face-recognition-dashboard' },
       { text: 'Assignments', icon: <AssignmentIcon />, path: '/assignment-dashboard' },
-      { text: 'Exams', icon: <ExamIcon />, path: '/exam-dashboard' }
+      { text: 'Exams', icon: <ExamIcon />, path: '/exam-dashboard' },
+      { text: 'Results', icon: <ResultIcon />, path: '/result-dashboard' }
     );
   } else if (user?.role === 'STUDENT') {
     menuItems.push(
@@ -114,7 +116,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       { text: 'QR Scanner', icon: <QrCodeIcon />, path: '/qr-attendance-dashboard' },
       { text: 'Face Scanner', icon: <FaceIcon />, path: '/face-recognition-dashboard' },
       { text: 'Assignments', icon: <AssignmentIcon />, path: '/assignment-dashboard' },
-      { text: 'Exams', icon: <ExamIcon />, path: '/exam-dashboard' }
+      { text: 'Exams', icon: <ExamIcon />, path: '/exam-dashboard' },
+      { text: 'Results', icon: <ResultIcon />, path: '/result-dashboard' }
     );
   } else if (user?.role === 'TEACHER') {
     menuItems.push(
@@ -126,7 +129,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       { text: 'QR Scanner', icon: <QrCodeIcon />, path: '/qr-attendance-dashboard' },
       { text: 'Face Scanner', icon: <FaceIcon />, path: '/face-recognition-dashboard' },
       { text: 'Assignments', icon: <AssignmentIcon />, path: '/assignment-dashboard' },
-      { text: 'Exams', icon: <ExamIcon />, path: '/exam-dashboard' }
+      { text: 'Exams', icon: <ExamIcon />, path: '/exam-dashboard' },
+      { text: 'Results', icon: <ResultIcon />, path: '/result-dashboard' }
     );
   } else {
     // Default fallback menu
