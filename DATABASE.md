@@ -73,18 +73,26 @@ This document describes the database design, tables, relations, and optimization
 | **AssignmentFeedback** | `AssignmentFeedback` | Instructor feedback and comments. | `id` (PK) |
 | **AssignmentGrade** | `AssignmentGrade` | Submission marks earned. | `id` (PK), `submissionId` (UQ) |
 | **AssignmentAudit** | `AssignmentAudit` | Security audit trail of assignment actions. | `id` (PK) |
+| **Exam** | `Exam` | Exam metadata parameters and types. | `id` (PK) |
+| **ExamSchedule** | `ExamSchedule` | Exam slot schedule assignments. | `id` (PK) |
+| **ExamRoom** | `ExamRoom` | Seat layouts capacity blocks. | `id` (PK) |
+| **ExamInvigilator** | `ExamInvigilator` | Assigned faculty shift details. | `id` (PK) |
+| **HallTicket** | `HallTicket` | Admit cards and seat assignments. | `id` (PK), `hallTicketNumber` (UQ) |
+| **SeatAllocation** | `SeatAllocation` | Mapped candidate room locations. | `id` (PK), `[blockName, roomNumber, benchNumber, seatNumber]` (UQ) |
+| **QuestionPaper** | `QuestionPaper` | Uploaded versions and approval status. | `id` (PK) |
+| **ExamAudit** | `ExamAudit` | Exam operations logging. | `id` (PK) |
 
 ---
 
 ## 🔗 Relationships & Cascades
 
 1. **Student Cascade Rules**:
-   * Deleting a student `User` cascades to delete all their profile, attendance summaries, results, assignments, certificates, documents, notifications, attendance records, correction requests, QR scan logs, biometric face profiles, and assignment submissions.
+   * Deleting a student `User` cascades to delete all their profile, attendance summaries, results, assignments, certificates, documents, notifications, attendance records, correction requests, QR scan logs, biometric face profiles, assignment submissions, and hall tickets.
    * Deleting a `Subject` cascades to delete all corresponding `StudentAttendanceSummary`, `StudentResult`, and `StudentAssignment` records.
 
 2. **Faculty Cascade Rules**:
-   * Deleting a faculty `User` cascades to delete their `FacultyProfile`, `AssignmentDef`, `FacultyNotes`, `FacultyQuiz`, `FacultyLeave`, `FacultyNotification`, and `assignmentsCreated` records.
-   * Deleting a `Subject` cascades to delete all corresponding `AssignmentDef`, `FacultyNotes`, `FacultyQuiz`, and `Assignment` records.
+   * Deleting a faculty `User` cascades to delete their `FacultyProfile`, `AssignmentDef`, `FacultyNotes`, `FacultyQuiz`, `FacultyLeave`, `FacultyNotification`, `assignmentsCreated`, `examsCreated`, and `examInvigilatorDuties` records.
+   * Deleting a `Subject` cascades to delete all corresponding `AssignmentDef`, `FacultyNotes`, `FacultyQuiz`, `Assignment`, and `Exam` records.
 
 3. **Timetable Cascade Rules**:
    * Deleting a `Timetable` cascades to delete all its entries (`TimetableEntry`) and approval logs (`TimetableApproval`).
@@ -103,6 +111,10 @@ This document describes the database design, tables, relations, and optimization
    * Deleting an `Assignment` cascades to delete its files (`AssignmentFile`), student submissions (`AssignmentSubmission`), and audit logs (`AssignmentAudit`).
    * Deleting an `AssignmentSubmission` cascades to delete its attachments (`SubmissionAttachment`), grades (`AssignmentGrade`), and feedbacks (`AssignmentFeedback`).
 
+7. **Exam Cascade Rules**:
+   * Deleting an `Exam` cascades to delete its schedules (`ExamSchedule`), hall tickets (`HallTicket`), question papers (`QuestionPaper`), and audit logs (`ExamAudit`).
+   * Deleting a `HallTicket` cascades to delete its seat allocations (`SeatAllocation`).
+
 ---
 
 ## ⚡ Index & Performance Optimizations
@@ -115,3 +127,4 @@ This document describes the database design, tables, relations, and optimization
 * **Scan log uniqueness**: Unique indexes on `GeoValidation.scanLogId` and `DeviceValidation.scanLogId` for fast join lookups.
 * **Face Uniqueness Indexes**: Unique index on `FaceProfile.userId` for fast profile lookups, and unique indexes on `FaceAttendance.attendanceRecordId` and `FaceAttendance.verificationId` for one-to-one mapping queries.
 * **Assignment Indexes**: Combo unique index on `[assignmentId, studentId]` in `AssignmentSubmission` speeds up student status lookups. Unique index on `AssignmentGrade.submissionId` for fast grading lookups. Index on `Assignment.dueDate` for fast sorting of upcoming deadlines.
+* **Exam Indexes**: Unique index on `HallTicket.hallTicketNumber` for rapid admit check verification. Unique index on `[blockName, roomNumber, benchNumber, seatNumber]` in `SeatAllocation` ensures seat duplication prevention. Index on `Exam.examDate` speeds up overlap checking routines.

@@ -162,3 +162,26 @@ Every endpoint returns a unified JSON envelope:
 
 #### Statistics Operations
 * `GET /api/v1/assignments/statistics/summary` - Faculty and Student summary dashboard metrics.
+
+---
+
+### 11. Examination Management Module (New in Day 12)
+
+#### Exam Operations
+* `POST /api/v1/exams` - Creates a new exam with department, course, and date properties.
+* `GET /api/v1/exams` - Retrieves a filtered and searched exam list.
+* `GET /api/v1/exams/{id}` - Detail view.
+* `PUT /api/v1/exams/{id}` - Updates exam metadata.
+* `DELETE /api/v1/exams/{id}` - Deletes exam.
+
+#### Scheduling & Allocations
+* `POST /api/v1/exams/{id}/schedule` - Sets room and staff invigilators with conflict overlap checking.
+* `POST /api/v1/exams/{id}/hallticket` - Issues a student admit card.
+* `POST /api/v1/exams/halltickets/{ticket_id}/seat-allocation` - Binds bench seat numbers with duplicate check protection.
+
+#### Question Papers
+* `POST /api/v1/exams/question-papers` - Faculty uploads a question paper.
+* `POST /api/v1/exams/question-papers/{qp_id}/review` - Admins approve or reject the draft.
+
+#### Statistics
+* `GET /api/v1/exams/statistics/summary` - Live dashboards statistics counts.

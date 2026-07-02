@@ -4,6 +4,18 @@ All notable changes to the **CampusGPT X** system are logged in this file.
 
 ---
 
+## [12.0-Complete] - 2026-07-02
+### Added
+* Enterprise-Grade Examination Management System including:
+  * **Exam creation panel**: Publish internal, mid-term, lab, practical, semester, and custom examinations.
+  * **Conflict-checked Scheduling**: Algorithmic safety overlap controls for rooms, laboratories, and faculty invigilators.
+  * **Seating Arrangement Registry**: Automated block seating allocation grids with duplication block guards.
+  * **Hall Ticket Admit Card**: Generate unique admit numbers and QR representation templates.
+  * **Question Paper Workflow**: Faculty uploads draft versions and admins approve/reject with secure reviews.
+* Premium Material UI `ExamDashboard.tsx` console with statistics meters, dialogs, and simulated admit cards.
+
+---
+
 ## [11.0-Complete] - 2026-07-02
 ### Added
 * Enterprise-Grade Assignment Management System including:

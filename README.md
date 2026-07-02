@@ -180,4 +180,5 @@ For detailed guides and deep dives:
 * [qr_attendance.md](file:///C:/Users/DELL/.gemini/antigravity-ide/brain/6814b530-b666-4f74-bfb2-40f328843fb5/qr_attendance.md) — Secure Dynamic QR check-in geofence algorithms.
 * [face_recognition.md](file:///C:/Users/DELL/.gemini/antigravity-ide/brain/6814b530-b666-4f74-bfb2-40f328843fb5/face_recognition.md) — Biometric facial recognition and spoof-protection logic models.
 * [assignment_management.md](file:///C:/Users/DELL/.gemini/antigravity-ide/brain/6814b530-b666-4f74-bfb2-40f328843fb5/assignment_management.md) — Assignment publishing, uploads, evaluations, and grading workflows.
+* [examination_management.md](file:///C:/Users/DELL/.gemini/antigravity-ide/brain/6814b530-b666-4f74-bfb2-40f328843fb5/examination_management.md) — Exam schema constraints, seat allocations, admit cards, and approvals.
 

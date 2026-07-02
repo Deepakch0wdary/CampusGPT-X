@@ -36,6 +36,7 @@ CampusGPT X is built as a high-performance monorepo:
    * Day 9 includes the Dynamic QR Attendance dashboard view **`QRAttendanceDashboard.tsx`**.
    * Day 10 includes the Face Recognition dashboard view **`FaceRecognitionDashboard.tsx`**.
    * Day 11 includes the Assignment Management dashboard view **`AssignmentDashboard.tsx`**.
+   * Day 12 includes the Examination Management dashboard view **`ExamDashboard.tsx`**.
 
 2. **`apps/backend`**:
    * REST API engine built with **FastAPI**.
@@ -44,6 +45,7 @@ CampusGPT X is built as a high-performance monorepo:
    * Day 9 registers the Dynamic QR Attendance endpoint handler in **`qr_attendances.py`** to perform geofence calculations, token rotation, and device checks.
    * Day 10 registers the Face Recognition endpoint handler in **`faces.py`** to handle biometric registrations, liveness metrics, anti-spoof checks, and reviews.
    * Day 11 registers the Assignment Management endpoint handler in **`assignments.py`** to handle CRUD, student uploads, resubmissions, and grades.
+   * Day 12 registers the Examination Management endpoint handler in **`exams.py`** to handle CRUD, scheduling conflict check routines, and seat allocation parameters.
 
 3. **`prisma`**:
    * Relational database schema manager.

@@ -71,6 +71,14 @@ model User {
   assignmentSubmissions        AssignmentSubmission[]
   assignmentFeedbacks          AssignmentFeedback[]
   assignmentAudits             AssignmentAudit[]
+  examsCreated                 Exam[]
+  examsInvigilated             ExamSchedule[]           @relation("InvigilatorUser")
+  examsSuperintended           ExamSchedule[]           @relation("ChiefSuperintendentUser")
+  examsObserved                ExamSchedule[]           @relation("ObserverUser")
+  examInvigilatorDuties        ExamInvigilator[]
+  hallTickets                  HallTicket[]
+  approvedQuestionPapers       QuestionPaper[]          @relation("QuestionPaperApprover")
+  examAudits                   ExamAudit[]
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
 
@@ -188,6 +196,7 @@ model Department {
   facultyAssignments FacultyAssignment[]
   attendanceSessions AttendanceSession[]
   assignments        Assignment[]
+  exams              Exam[]
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
 }
@@ -212,6 +221,7 @@ model Section {
   attendanceSessions AttendanceSession[]
   defaulters         DefaulterList[]
   assignments        Assignment[]
+  exams              Exam[]
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
 }
@@ -230,6 +240,7 @@ model AcademicYear {
   timetables           Timetable[]
   attendanceSessions   AttendanceSession[]
   assignments          Assignment[]
+  exams                Exam[]
   createdAt            DateTime            @default(now())
   updatedAt            DateTime            @updatedAt
 }
@@ -246,6 +257,7 @@ model Program {
   semesters    Semester[]
   attendanceSessions AttendanceSession[]
   assignments        Assignment[]
+  exams              Exam[]
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 }
@@ -283,6 +295,7 @@ model Semester {
   timetables         Timetable[]
   attendanceSessions AttendanceSession[]
   assignments        Assignment[]
+  exams              Exam[]
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
 }
@@ -313,6 +326,7 @@ model Subject {
   attendanceSessions  AttendanceSession[]
   defaulters          DefaulterList[]
   subjectAssignments  Assignment[]
+  subjectExams        Exam[]
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
 }
@@ -345,6 +359,7 @@ model Room {
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
   timetableEntries TimetableEntry[]
+  examSchedules    ExamSchedule[]
 }
 
 model Laboratory {
@@ -359,6 +374,7 @@ model Laboratory {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
   timetableEntries TimetableEntry[]
+  examSchedules    ExamSchedule[]
 }
 
 model FacultyAssignment {
@@ -996,4 +1012,130 @@ model AssignmentAudit {
   ipAddress    String?
   userAgent    String?
   createdAt    DateTime    @default(now())
+}
+
+model Exam {
+  id              String         @id @default(uuid())
+  examName        String
+  examType        String         // INTERNAL, MID, LAB, PRACTICAL, SEMESTER, SUPPLEMENTARY, IMPROVEMENT, CUSTOM
+  academicYearId  String
+  academicYear    AcademicYear   @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  departmentId    String
+  department      Department     @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  programId       String
+  program         Program        @relation(fields: [programId], references: [id], onDelete: Cascade)
+  semesterId      String
+  semester        Semester       @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  sectionId       String
+  section         Section        @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  subjectId       String
+  subject         Subject        @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  facultyId       String?
+  creator         User?          @relation(fields: [facultyId], references: [id], onDelete: SetNull)
+  examDate        DateTime
+  startTime       String         // HH:MM
+  endTime         String         // HH:MM
+  durationMinutes Int
+  maxMarks        Float
+  passingMarks    Float
+  instructions    String?        @db.Text
+  status          String         @default("ACTIVE") // ACTIVE, CANCELLED, COMPLETED
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  schedules       ExamSchedule[]
+  hallTickets     HallTicket[]
+  questionPapers  QuestionPaper[]
+  audits          ExamAudit[]
+}
+
+model ExamSchedule {
+  id                    String      @id @default(uuid())
+  examId                String
+  exam                  Exam        @relation(fields: [examId], references: [id], onDelete: Cascade)
+  roomId                String?
+  room                  Room?       @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  labId                 String?
+  lab                   Laboratory? @relation(fields: [labId], references: [id], onDelete: SetNull)
+  invigilatorId         String?
+  invigilator           User?       @relation(name: "InvigilatorUser", fields: [invigilatorId], references: [id], onDelete: SetNull)
+  chiefSuperintendentId String?
+  chiefSuperintendent   User?       @relation(name: "ChiefSuperintendentUser", fields: [chiefSuperintendentId], references: [id], onDelete: SetNull)
+  observerId            String?
+  observer              User?       @relation(name: "ObserverUser", fields: [observerId], references: [id], onDelete: SetNull)
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+}
+
+model ExamRoom {
+  id            String   @id @default(uuid())
+  blockName     String
+  roomNumber    String
+  totalBenches  Int
+  seatsPerBench Int
+  capacity      Int
+  createdAt     DateTime @default(now())
+}
+
+model ExamInvigilator {
+  id               String   @id @default(uuid())
+  facultyId        String
+  faculty          User     @relation(fields: [facultyId], references: [id], onDelete: Cascade)
+  roomNumber       String
+  blockName        String
+  shift            String   // MORNING, AFTERNOON
+  attendanceStatus String   @default("PRESENT") // PRESENT, ABSENT
+  dutyReport       String?  @db.Text
+  createdAt        DateTime @default(now())
+}
+
+model HallTicket {
+  id               String           @id @default(uuid())
+  hallTicketNumber String           @unique
+  studentId        String
+  student          User             @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  examId           String
+  exam             Exam             @relation(fields: [examId], references: [id], onDelete: Cascade)
+  qrCodeUrl        String?
+  examCenter       String
+  seatNumber       String?
+  createdAt        DateTime         @default(now())
+  seatAllocations  SeatAllocation[]
+}
+
+model SeatAllocation {
+  id           String     @id @default(uuid())
+  hallTicketId String
+  hallTicket   HallTicket @relation(fields: [hallTicketId], references: [id], onDelete: Cascade)
+  blockName    String
+  roomNumber   String
+  benchNumber  Int
+  seatNumber   String
+  createdAt    DateTime   @default(now())
+
+  @@unique([blockName, roomNumber, benchNumber, seatNumber])
+}
+
+model QuestionPaper {
+  id           String   @id @default(uuid())
+  examId       String
+  exam         Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  fileUrl      String
+  fileName     String
+  version      Int      @default(1)
+  status       String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  approvedById String?
+  approvedBy   User?    @relation(name: "QuestionPaperApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime @default(now())
+}
+
+model ExamAudit {
+  id        String   @id @default(uuid())
+  examId    String?
+  exam      Exam?    @relation(fields: [examId], references: [id], onDelete: SetNull)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action    String   // CREATE_EXAM, UPDATE_EXAM, SCHEDULE_EXAM, DOWNLOAD_HALL_TICKET, UPLOAD_QUESTION_PAPER, APPROVE_QUESTION_PAPER
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
 }

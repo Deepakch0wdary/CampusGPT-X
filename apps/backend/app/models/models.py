@@ -111,6 +111,14 @@ class User(Base):
     assignmentSubmissions = relationship("AssignmentSubmission", back_populates="student", cascade="all, delete-orphan")
     assignmentFeedbacks = relationship("AssignmentFeedback", back_populates="faculty", cascade="all, delete-orphan")
     assignmentAudits = relationship("AssignmentAudit", back_populates="user", cascade="all, delete-orphan")
+    examsCreated = relationship("Exam", back_populates="creator", cascade="all, delete-orphan")
+    examsInvigilated = relationship("ExamSchedule", foreign_keys="[ExamSchedule.invigilatorId]", back_populates="invigilator")
+    examsSuperintended = relationship("ExamSchedule", foreign_keys="[ExamSchedule.chiefSuperintendentId]", back_populates="chiefSuperintendent")
+    examsObserved = relationship("ExamSchedule", foreign_keys="[ExamSchedule.observerId]", back_populates="observer")
+    examInvigilatorDuties = relationship("ExamInvigilator", back_populates="faculty", cascade="all, delete-orphan")
+    hallTickets = relationship("HallTicket", back_populates="student", cascade="all, delete-orphan")
+    approvedQuestionPapers = relationship("QuestionPaper", back_populates="approvedBy")
+    examAudits = relationship("ExamAudit", back_populates="user", cascade="all, delete-orphan")
 
 class UserProfile(Base):
     __tablename__ = "UserProfile"
@@ -156,6 +164,7 @@ class Department(Base):
     facultyAssignments = relationship("FacultyAssignment", back_populates="department", cascade="all, delete-orphan")
     attendanceSessions = relationship("AttendanceSession", back_populates="department", cascade="all, delete-orphan")
     assignments = relationship("Assignment", back_populates="department", cascade="all, delete-orphan")
+    exams = relationship("Exam", back_populates="department", cascade="all, delete-orphan")
 
 class Section(Base):
     __tablename__ = "Section"
@@ -181,6 +190,7 @@ class Section(Base):
     attendanceSessions = relationship("AttendanceSession", back_populates="section", cascade="all, delete-orphan")
     defaulters = relationship("DefaulterList", back_populates="section", cascade="all, delete-orphan")
     assignments = relationship("Assignment", back_populates="section", cascade="all, delete-orphan")
+    exams = relationship("Exam", back_populates="section", cascade="all, delete-orphan")
 
 class AcademicYear(Base):
     __tablename__ = "AcademicYear"
@@ -200,6 +210,7 @@ class AcademicYear(Base):
     timetables = relationship("Timetable", back_populates="academicYear", cascade="all, delete-orphan")
     attendanceSessions = relationship("AttendanceSession", back_populates="academicYear", cascade="all, delete-orphan")
     assignments = relationship("Assignment", back_populates="academicYear", cascade="all, delete-orphan")
+    exams = relationship("Exam", back_populates="academicYear", cascade="all, delete-orphan")
 
 class Program(Base):
     __tablename__ = "Program"
@@ -217,6 +228,7 @@ class Program(Base):
     semesters = relationship("Semester", back_populates="program", cascade="all, delete-orphan")
     attendanceSessions = relationship("AttendanceSession", back_populates="program", cascade="all, delete-orphan")
     assignments = relationship("Assignment", back_populates="program", cascade="all, delete-orphan")
+    exams = relationship("Exam", back_populates="program", cascade="all, delete-orphan")
 
 class Course(Base):
     __tablename__ = "Course"
@@ -256,6 +268,7 @@ class Semester(Base):
     timetables = relationship("Timetable", back_populates="semester", cascade="all, delete-orphan")
     attendanceSessions = relationship("AttendanceSession", back_populates="semester", cascade="all, delete-orphan")
     assignments = relationship("Assignment", back_populates="semester", cascade="all, delete-orphan")
+    exams = relationship("Exam", back_populates="semester", cascade="all, delete-orphan")
 
 class Subject(Base):
     __tablename__ = "Subject"
@@ -287,6 +300,7 @@ class Subject(Base):
     attendanceSessions = relationship("AttendanceSession", back_populates="subject", cascade="all, delete-orphan")
     defaulters = relationship("DefaulterList", back_populates="subject", cascade="all, delete-orphan")
     subjectAssignments = relationship("Assignment", back_populates="subject", cascade="all, delete-orphan")
+    subjectExams = relationship("Exam", back_populates="subject", cascade="all, delete-orphan")
 
 class Building(Base):
     __tablename__ = "Building"
@@ -319,6 +333,7 @@ class Room(Base):
     building = relationship("Building", back_populates="rooms")
     department = relationship("Department", back_populates="rooms")
     timetableEntries = relationship("TimetableEntry", back_populates="room")
+    examSchedules = relationship("ExamSchedule", back_populates="room")
 
 class Laboratory(Base):
     __tablename__ = "Laboratory"
@@ -334,6 +349,7 @@ class Laboratory(Base):
 
     department = relationship("Department", back_populates="laboratories")
     timetableEntries = relationship("TimetableEntry", back_populates="lab")
+    examSchedules = relationship("ExamSchedule", back_populates="lab")
 
 class FacultyAssignment(Base):
     __tablename__ = "FacultyAssignment"
@@ -1061,6 +1077,141 @@ class AssignmentAudit(Base):
 
     assignment = relationship("Assignment", back_populates="audits")
     user = relationship("User", back_populates="assignmentAudits")
+
+class Exam(Base):
+    __tablename__ = "Exam"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    examName = Column(String(191), nullable=False)
+    examType = Column(String(191), nullable=False) # INTERNAL, MID, LAB, PRACTICAL, SEMESTER, SUPPLEMENTARY, IMPROVEMENT, CUSTOM
+    academicYearId = Column(String(191), ForeignKey("AcademicYear.id", ondelete="CASCADE"), nullable=False)
+    departmentId = Column(String(191), ForeignKey("Department.id", ondelete="CASCADE"), nullable=False)
+    programId = Column(String(191), ForeignKey("Program.id", ondelete="CASCADE"), nullable=False)
+    semesterId = Column(String(191), ForeignKey("Semester.id", ondelete="CASCADE"), nullable=False)
+    sectionId = Column(String(191), ForeignKey("Section.id", ondelete="CASCADE"), nullable=False)
+    subjectId = Column(String(191), ForeignKey("Subject.id", ondelete="CASCADE"), nullable=False)
+    facultyId = Column(String(191), ForeignKey("User.id", ondelete="SET NULL"), nullable=True)
+    examDate = Column(DateTime, nullable=False)
+    startTime = Column(String(191), nullable=False) # HH:MM
+    endTime = Column(String(191), nullable=False) # HH:MM
+    durationMinutes = Column(Integer, nullable=False)
+    maxMarks = Column(Float, nullable=False)
+    passingMarks = Column(Float, nullable=False)
+    instructions = Column(Text, nullable=True)
+    status = Column(String(191), default="ACTIVE", nullable=False) # ACTIVE, CANCELLED, COMPLETED
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    academicYear = relationship("AcademicYear", back_populates="exams")
+    department = relationship("Department", back_populates="exams")
+    program = relationship("Program", back_populates="exams")
+    semester = relationship("Semester", back_populates="exams")
+    section = relationship("Section", back_populates="exams")
+    subject = relationship("Subject", back_populates="subjectExams")
+    creator = relationship("User", back_populates="examsCreated")
+    schedules = relationship("ExamSchedule", back_populates="exam", cascade="all, delete-orphan")
+    hallTickets = relationship("HallTicket", back_populates="exam", cascade="all, delete-orphan")
+    questionPapers = relationship("QuestionPaper", back_populates="exam", cascade="all, delete-orphan")
+    audits = relationship("ExamAudit", back_populates="exam")
+
+class ExamSchedule(Base):
+    __tablename__ = "ExamSchedule"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    examId = Column(String(191), ForeignKey("Exam.id", ondelete="CASCADE"), nullable=False)
+    roomId = Column(String(191), ForeignKey("Room.id", ondelete="SET NULL"), nullable=True)
+    labId = Column(String(191), ForeignKey("Laboratory.id", ondelete="SET NULL"), nullable=True)
+    invigilatorId = Column(String(191), ForeignKey("User.id", ondelete="SET NULL"), nullable=True)
+    chiefSuperintendentId = Column(String(191), ForeignKey("User.id", ondelete="SET NULL"), nullable=True)
+    observerId = Column(String(191), ForeignKey("User.id", ondelete="SET NULL"), nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    exam = relationship("Exam", back_populates="schedules")
+    room = relationship("Room", back_populates="examSchedules")
+    lab = relationship("Laboratory", back_populates="examSchedules")
+    invigilator = relationship("User", foreign_keys=[invigilatorId], back_populates="examsInvigilated")
+    chiefSuperintendent = relationship("User", foreign_keys=[chiefSuperintendentId], back_populates="examsSuperintended")
+    observer = relationship("User", foreign_keys=[observerId], back_populates="examsObserved")
+
+class ExamRoom(Base):
+    __tablename__ = "ExamRoom"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    blockName = Column(String(191), nullable=False)
+    roomNumber = Column(String(191), nullable=False)
+    totalBenches = Column(Integer, nullable=False)
+    seatsPerBench = Column(Integer, nullable=False)
+    capacity = Column(Integer, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+class ExamInvigilator(Base):
+    __tablename__ = "ExamInvigilator"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    facultyId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    roomNumber = Column(String(191), nullable=False)
+    blockName = Column(String(191), nullable=False)
+    shift = Column(String(191), nullable=False) # MORNING, AFTERNOON
+    attendanceStatus = Column(String(191), default="PRESENT", nullable=False) # PRESENT, ABSENT
+    dutyReport = Column(Text, nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    faculty = relationship("User", back_populates="examInvigilatorDuties")
+
+class HallTicket(Base):
+    __tablename__ = "HallTicket"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    hallTicketNumber = Column(String(191), unique=True, nullable=False)
+    studentId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    examId = Column(String(191), ForeignKey("Exam.id", ondelete="CASCADE"), nullable=False)
+    qrCodeUrl = Column(String(191), nullable=True)
+    examCenter = Column(String(191), nullable=False)
+    seatNumber = Column(String(191), nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    student = relationship("User", back_populates="hallTickets")
+    exam = relationship("Exam", back_populates="hallTickets")
+    seatAllocations = relationship("SeatAllocation", back_populates="hallTicket", cascade="all, delete-orphan")
+
+class SeatAllocation(Base):
+    __tablename__ = "SeatAllocation"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    hallTicketId = Column(String(191), ForeignKey("HallTicket.id", ondelete="CASCADE"), nullable=False)
+    blockName = Column(String(191), nullable=False)
+    roomNumber = Column(String(191), nullable=False)
+    benchNumber = Column(Integer, nullable=False)
+    seatNumber = Column(String(191), nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    hallTicket = relationship("HallTicket", back_populates="seatAllocations")
+
+    __table_args__ = (
+        UniqueConstraint("blockName", "roomNumber", "benchNumber", "seatNumber", name="uq_seat_bench_room"),
+    )
+
+class QuestionPaper(Base):
+    __tablename__ = "QuestionPaper"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    examId = Column(String(191), ForeignKey("Exam.id", ondelete="CASCADE"), nullable=False)
+    fileUrl = Column(String(191), nullable=False)
+    fileName = Column(String(191), nullable=False)
+    version = Column(Integer, default=1, nullable=False)
+    status = Column(String(191), default="PENDING", nullable=False) # PENDING, APPROVED, REJECTED
+    approvedById = Column(String(191), ForeignKey("User.id", ondelete="SET NULL"), nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    exam = relationship("Exam", back_populates="questionPapers")
+    approvedBy = relationship("User", back_populates="approvedQuestionPapers")
+
+class ExamAudit(Base):
+    __tablename__ = "ExamAudit"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    examId = Column(String(191), ForeignKey("Exam.id", ondelete="SET NULL"), nullable=True)
+    userId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    action = Column(String(191), nullable=False) # CREATE_EXAM, UPDATE_EXAM, SCHEDULE_EXAM, DOWNLOAD_HALL_TICKET, UPLOAD_QUESTION_PAPER, APPROVE_QUESTION_PAPER
+    ipAddress = Column(String(191), nullable=True)
+    userAgent = Column(String(191), nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    exam = relationship("Exam", back_populates="audits")
+    user = relationship("User", back_populates="examAudits")
 
 
 
