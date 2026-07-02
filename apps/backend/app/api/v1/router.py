@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import health, auth, users, sessions, audits, academics, students, faculties, timetables, attendances, qr_attendances, faces
+from app.api.v1.endpoints import health, auth, users, sessions, audits, academics, students, faculties, timetables, attendances, qr_attendances, faces, assignments
 
 api_router = APIRouter()
 api_router.include_router(health.router, prefix="/health", tags=["System Health"])
@@ -25,6 +25,9 @@ api_router.include_router(qr_attendances.router, prefix="/qr-attendance", tags=[
 
 # Face Recognition Router
 api_router.include_router(faces.router, prefix="/face", tags=["Face Recognition"])
+
+# Assignment Management Router
+api_router.include_router(assignments.router, prefix="/assignments", tags=["Assignment Management"])
 
 # Academic Structure Routers
 api_router.include_router(academics.academic_years_router, prefix="/academic-years", tags=["Academic Years"])

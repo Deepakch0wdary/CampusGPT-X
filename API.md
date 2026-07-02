@@ -141,3 +141,24 @@ Every endpoint returns a unified JSON envelope:
 
 #### Administrative statistics
 * `GET /api/v1/face/statistics` - Recognition logs, liveness passed counts, and failed verification indicators.
+
+---
+
+### 10. Assignment Management Module (New in Day 11)
+
+#### Assignment Operations
+* `POST /api/v1/assignments` - Faculty creates a new assignment with configurations.
+* `GET /api/v1/assignments` - Get assignments with query filters, search, and page variables.
+* `GET /api/v1/assignments/{id}` - Details of an assignment.
+* `PUT /api/v1/assignments/{id}` - Edit details.
+* `DELETE /api/v1/assignments/{id}` - Delete assignment.
+
+#### Submission Operations
+* `POST /api/v1/assignments/{id}/submit` - Student uploads assignment file attachments.
+* `GET /api/v1/assignments/{id}/submissions` - Faculty fetches all student uploads.
+
+#### Grading Operations
+* `POST /api/v1/assignments/submissions/{submission_id}/grade` - Faculty evaluations grading submissions.
+
+#### Statistics Operations
+* `GET /api/v1/assignments/statistics/summary` - Faculty and Student summary dashboard metrics.

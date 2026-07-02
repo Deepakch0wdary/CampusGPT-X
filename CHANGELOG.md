@@ -4,6 +4,17 @@ All notable changes to the **CampusGPT X** system are logged in this file.
 
 ---
 
+## [11.0-Complete] - 2026-07-02
+### Added
+* Enterprise-Grade Assignment Management System including:
+  * **Assignment creation panel**: Select academic properties, title, description, allowed extensions, and file sizes.
+  * **Student submission pipeline**: Upload attachments, resubmit corrections, and check late statuses.
+  * **Faculty grading & evaluation API**: Evaluate student uploads, assign marks, and provide comments.
+  * **Plagiarism preparation structural hooks**: Designing AST parsing code check templates and LLM evaluation prompts hooks.
+* Premium Material UI `AssignmentDashboard.tsx` console with tabbed statistics, forms, and alerts.
+
+---
+
 ## [10.0-Complete] - 2026-07-01
 ### Added
 * Enterprise-Grade Face Recognition System including:

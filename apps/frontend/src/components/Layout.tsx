@@ -25,7 +25,8 @@ import {
   CalendarToday as CalendarTodayIcon,
   CheckCircle as CheckCircleIcon,
   QrCode2 as QrCodeIcon,
-  Face as FaceIcon
+  Face as FaceIcon,
+  Assignment as AssignmentIcon
 } from '@mui/icons-material';
 
 const DRAWER_WIDTH = 260;
@@ -98,7 +99,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       { text: 'Timetables', icon: <CalendarTodayIcon />, path: '/timetable-dashboard' },
       { text: 'Attendance', icon: <CheckCircleIcon />, path: '/attendance-dashboard' },
       { text: 'QR Scanner', icon: <QrCodeIcon />, path: '/qr-attendance-dashboard' },
-      { text: 'Face Scanner', icon: <FaceIcon />, path: '/face-recognition-dashboard' }
+      { text: 'Face Scanner', icon: <FaceIcon />, path: '/face-recognition-dashboard' },
+      { text: 'Assignments', icon: <AssignmentIcon />, path: '/assignment-dashboard' }
     );
   } else if (user?.role === 'STUDENT') {
     menuItems.push(
@@ -108,7 +110,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       { text: 'Timetables', icon: <CalendarTodayIcon />, path: '/timetable-dashboard' },
       { text: 'Attendance', icon: <CheckCircleIcon />, path: '/attendance-dashboard' },
       { text: 'QR Scanner', icon: <QrCodeIcon />, path: '/qr-attendance-dashboard' },
-      { text: 'Face Scanner', icon: <FaceIcon />, path: '/face-recognition-dashboard' }
+      { text: 'Face Scanner', icon: <FaceIcon />, path: '/face-recognition-dashboard' },
+      { text: 'Assignments', icon: <AssignmentIcon />, path: '/assignment-dashboard' }
     );
   } else if (user?.role === 'TEACHER') {
     menuItems.push(
@@ -118,7 +121,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       { text: 'Timetables', icon: <CalendarTodayIcon />, path: '/timetable-dashboard' },
       { text: 'Attendance', icon: <CheckCircleIcon />, path: '/attendance-dashboard' },
       { text: 'QR Scanner', icon: <QrCodeIcon />, path: '/qr-attendance-dashboard' },
-      { text: 'Face Scanner', icon: <FaceIcon />, path: '/face-recognition-dashboard' }
+      { text: 'Face Scanner', icon: <FaceIcon />, path: '/face-recognition-dashboard' },
+      { text: 'Assignments', icon: <AssignmentIcon />, path: '/assignment-dashboard' }
     );
   } else {
     // Default fallback menu

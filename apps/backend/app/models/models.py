@@ -107,6 +107,10 @@ class User(Base):
     faceVerifications = relationship("FaceVerification", back_populates="user", cascade="all, delete-orphan")
     faceAudits = relationship("FaceAudit", back_populates="user", cascade="all, delete-orphan")
     faceApprovedRegistrations = relationship("FaceRegistration", back_populates="admin")
+    assignmentsCreated = relationship("Assignment", back_populates="faculty", cascade="all, delete-orphan")
+    assignmentSubmissions = relationship("AssignmentSubmission", back_populates="student", cascade="all, delete-orphan")
+    assignmentFeedbacks = relationship("AssignmentFeedback", back_populates="faculty", cascade="all, delete-orphan")
+    assignmentAudits = relationship("AssignmentAudit", back_populates="user", cascade="all, delete-orphan")
 
 class UserProfile(Base):
     __tablename__ = "UserProfile"
@@ -151,6 +155,7 @@ class Department(Base):
     laboratories = relationship("Laboratory", back_populates="department", cascade="all, delete-orphan")
     facultyAssignments = relationship("FacultyAssignment", back_populates="department", cascade="all, delete-orphan")
     attendanceSessions = relationship("AttendanceSession", back_populates="department", cascade="all, delete-orphan")
+    assignments = relationship("Assignment", back_populates="department", cascade="all, delete-orphan")
 
 class Section(Base):
     __tablename__ = "Section"
@@ -175,6 +180,7 @@ class Section(Base):
     timetables = relationship("Timetable", back_populates="section", cascade="all, delete-orphan")
     attendanceSessions = relationship("AttendanceSession", back_populates="section", cascade="all, delete-orphan")
     defaulters = relationship("DefaulterList", back_populates="section", cascade="all, delete-orphan")
+    assignments = relationship("Assignment", back_populates="section", cascade="all, delete-orphan")
 
 class AcademicYear(Base):
     __tablename__ = "AcademicYear"
@@ -193,6 +199,7 @@ class AcademicYear(Base):
     calendars = relationship("AcademicCalendar", back_populates="academicYear", cascade="all, delete-orphan")
     timetables = relationship("Timetable", back_populates="academicYear", cascade="all, delete-orphan")
     attendanceSessions = relationship("AttendanceSession", back_populates="academicYear", cascade="all, delete-orphan")
+    assignments = relationship("Assignment", back_populates="academicYear", cascade="all, delete-orphan")
 
 class Program(Base):
     __tablename__ = "Program"
@@ -209,6 +216,7 @@ class Program(Base):
     sections = relationship("Section", back_populates="program", cascade="all, delete-orphan")
     semesters = relationship("Semester", back_populates="program", cascade="all, delete-orphan")
     attendanceSessions = relationship("AttendanceSession", back_populates="program", cascade="all, delete-orphan")
+    assignments = relationship("Assignment", back_populates="program", cascade="all, delete-orphan")
 
 class Course(Base):
     __tablename__ = "Course"
@@ -247,6 +255,7 @@ class Semester(Base):
     facultyAssignments = relationship("FacultyAssignment", back_populates="semester", cascade="all, delete-orphan")
     timetables = relationship("Timetable", back_populates="semester", cascade="all, delete-orphan")
     attendanceSessions = relationship("AttendanceSession", back_populates="semester", cascade="all, delete-orphan")
+    assignments = relationship("Assignment", back_populates="semester", cascade="all, delete-orphan")
 
 class Subject(Base):
     __tablename__ = "Subject"
@@ -277,6 +286,7 @@ class Subject(Base):
     timetableEntries = relationship("TimetableEntry", back_populates="subject")
     attendanceSessions = relationship("AttendanceSession", back_populates="subject", cascade="all, delete-orphan")
     defaulters = relationship("DefaulterList", back_populates="subject", cascade="all, delete-orphan")
+    subjectAssignments = relationship("Assignment", back_populates="subject", cascade="all, delete-orphan")
 
 class Building(Base):
     __tablename__ = "Building"
@@ -941,6 +951,116 @@ class SpoofDetection(Base):
 
     faceProfile = relationship("FaceProfile", back_populates="spoofDetections")
     verification = relationship("FaceVerification", back_populates="spoofDetections")
+
+class Assignment(Base):
+    __tablename__ = "Assignment"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    academicYearId = Column(String(191), ForeignKey("AcademicYear.id", ondelete="CASCADE"), nullable=False)
+    departmentId = Column(String(191), ForeignKey("Department.id", ondelete="CASCADE"), nullable=False)
+    programId = Column(String(191), ForeignKey("Program.id", ondelete="CASCADE"), nullable=False)
+    semesterId = Column(String(191), ForeignKey("Semester.id", ondelete="CASCADE"), nullable=False)
+    sectionId = Column(String(191), ForeignKey("Section.id", ondelete="CASCADE"), nullable=False)
+    subjectId = Column(String(191), ForeignKey("Subject.id", ondelete="CASCADE"), nullable=False)
+    facultyId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    assignmentType = Column(String(191), nullable=False) # HOMEWORK, PROJECT, LAB, EXAM
+    title = Column(String(191), nullable=False)
+    description = Column(Text, nullable=True)
+    instructions = Column(Text, nullable=True)
+    dueDate = Column(DateTime, nullable=False)
+    maxMarks = Column(Float, nullable=False)
+    allowedFileTypes = Column(String(191), nullable=False) # e.g. "PDF,ZIP"
+    maxUploadSizeMb = Column(Float, default=10.0, nullable=False)
+    status = Column(String(191), default="DRAFT", nullable=False) # DRAFT, PUBLISHED
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    academicYear = relationship("AcademicYear", back_populates="assignments")
+    department = relationship("Department", back_populates="assignments")
+    program = relationship("Program", back_populates="assignments")
+    semester = relationship("Semester", back_populates="assignments")
+    section = relationship("Section", back_populates="assignments")
+    subject = relationship("Subject", back_populates="subjectAssignments")
+    faculty = relationship("User", back_populates="assignmentsCreated")
+    files = relationship("AssignmentFile", back_populates="assignment", cascade="all, delete-orphan")
+    submissions = relationship("AssignmentSubmission", back_populates="assignment", cascade="all, delete-orphan")
+    audits = relationship("AssignmentAudit", back_populates="assignment")
+
+class AssignmentFile(Base):
+    __tablename__ = "AssignmentFile"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    assignmentId = Column(String(191), ForeignKey("Assignment.id", ondelete="CASCADE"), nullable=False)
+    fileName = Column(String(191), nullable=False)
+    fileUrl = Column(String(191), nullable=False)
+    fileSize = Column(Integer, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    assignment = relationship("Assignment", back_populates="files")
+
+class AssignmentSubmission(Base):
+    __tablename__ = "AssignmentSubmission"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    assignmentId = Column(String(191), ForeignKey("Assignment.id", ondelete="CASCADE"), nullable=False)
+    studentId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    status = Column(String(191), default="SUBMITTED", nullable=False) # SUBMITTED, LATE, GRADED
+    submittedAt = Column(DateTime, default=datetime.utcnow)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    assignment = relationship("Assignment", back_populates="submissions")
+    student = relationship("User", back_populates="assignmentSubmissions")
+    attachments = relationship("SubmissionAttachment", back_populates="submission", cascade="all, delete-orphan")
+    grade = relationship("AssignmentGrade", uselist=False, back_populates="submission", cascade="all, delete-orphan")
+    feedback = relationship("AssignmentFeedback", back_populates="submission", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        UniqueConstraint("assignmentId", "studentId", name="uq_assignment_student"),
+    )
+
+class SubmissionAttachment(Base):
+    __tablename__ = "SubmissionAttachment"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    submissionId = Column(String(191), ForeignKey("AssignmentSubmission.id", ondelete="CASCADE"), nullable=False)
+    fileName = Column(String(191), nullable=False)
+    fileUrl = Column(String(191), nullable=False)
+    fileSize = Column(Integer, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    submission = relationship("AssignmentSubmission", back_populates="attachments")
+
+class AssignmentFeedback(Base):
+    __tablename__ = "AssignmentFeedback"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    submissionId = Column(String(191), ForeignKey("AssignmentSubmission.id", ondelete="CASCADE"), nullable=False)
+    facultyId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    comments = Column(Text, nullable=False)
+    annotatedFileUrl = Column(String(191), nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    submission = relationship("AssignmentSubmission", back_populates="feedback")
+    faculty = relationship("User", back_populates="assignmentFeedbacks")
+
+class AssignmentGrade(Base):
+    __tablename__ = "AssignmentGrade"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    submissionId = Column(String(191), ForeignKey("AssignmentSubmission.id", ondelete="CASCADE"), unique=True, nullable=False)
+    marksObtained = Column(Float, nullable=False)
+    isPublished = Column(Boolean, default=False, nullable=False)
+    gradedAt = Column(DateTime, default=datetime.utcnow)
+
+    submission = relationship("AssignmentSubmission", back_populates="grade")
+
+class AssignmentAudit(Base):
+    __tablename__ = "AssignmentAudit"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    assignmentId = Column(String(191), ForeignKey("Assignment.id", ondelete="SET NULL"), nullable=True)
+    userId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    action = Column(String(191), nullable=False) # CREATE_ASSIGNMENT, SUBMIT_ASSIGNMENT, GRADE_ASSIGNMENT, PUBLISH_GRADES
+    ipAddress = Column(String(191), nullable=True)
+    userAgent = Column(String(191), nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    assignment = relationship("Assignment", back_populates="audits")
+    user = relationship("User", back_populates="assignmentAudits")
 
 
 

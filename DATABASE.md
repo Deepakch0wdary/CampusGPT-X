@@ -66,18 +66,25 @@ This document describes the database design, tables, relations, and optimization
 | **FaceAudit** | `FaceAudit` | Audits biometric changes. | `id` (PK) |
 | **LivenessCheck** | `LivenessCheck` | Records blinking yaw degree counters. | `id` (PK) |
 | **SpoofDetection** | `SpoofDetection` | Anti-spoofing screen replay flags. | `id` (PK) |
+| **Assignment** | `Assignment` | Assignments metadata constraints. | `id` (PK) |
+| **AssignmentFile** | `AssignmentFile` | Faculty attachments uploaded. | `id` (PK) |
+| **AssignmentSubmission** | `AssignmentSubmission` | Student assignment uploads. | `id` (PK), `[assignmentId, studentId]` (UQ) |
+| **SubmissionAttachment** | `SubmissionAttachment` | Student submission attachments. | `id` (PK) |
+| **AssignmentFeedback** | `AssignmentFeedback` | Instructor feedback and comments. | `id` (PK) |
+| **AssignmentGrade** | `AssignmentGrade` | Submission marks earned. | `id` (PK), `submissionId` (UQ) |
+| **AssignmentAudit** | `AssignmentAudit` | Security audit trail of assignment actions. | `id` (PK) |
 
 ---
 
 ## 🔗 Relationships & Cascades
 
 1. **Student Cascade Rules**:
-   * Deleting a student `User` cascades to delete all their profile, attendance summaries, results, assignments, certificates, documents, notifications, attendance records, correction requests, QR scan logs, and biometric face profiles.
+   * Deleting a student `User` cascades to delete all their profile, attendance summaries, results, assignments, certificates, documents, notifications, attendance records, correction requests, QR scan logs, biometric face profiles, and assignment submissions.
    * Deleting a `Subject` cascades to delete all corresponding `StudentAttendanceSummary`, `StudentResult`, and `StudentAssignment` records.
 
 2. **Faculty Cascade Rules**:
-   * Deleting a faculty `User` cascades to delete their `FacultyProfile`, `AssignmentDef`, `FacultyNotes`, `FacultyQuiz`, `FacultyLeave`, and `FacultyNotification` records.
-   * Deleting a `Subject` cascades to delete all corresponding `AssignmentDef`, `FacultyNotes`, and `FacultyQuiz` records.
+   * Deleting a faculty `User` cascades to delete their `FacultyProfile`, `AssignmentDef`, `FacultyNotes`, `FacultyQuiz`, `FacultyLeave`, `FacultyNotification`, and `assignmentsCreated` records.
+   * Deleting a `Subject` cascades to delete all corresponding `AssignmentDef`, `FacultyNotes`, `FacultyQuiz`, and `Assignment` records.
 
 3. **Timetable Cascade Rules**:
    * Deleting a `Timetable` cascades to delete all its entries (`TimetableEntry`) and approval logs (`TimetableApproval`).
@@ -92,6 +99,10 @@ This document describes the database design, tables, relations, and optimization
    * Deleting a `FaceProfile` cascades to clear all its `FaceEmbedding` angles, `FaceVerification` items, `LivenessCheck` items, and `SpoofDetection` logs.
    * Deleting a `FaceVerification` cascades to delete its linked `FaceAttendance` bindings.
 
+6. **Assignment Cascade Rules**:
+   * Deleting an `Assignment` cascades to delete its files (`AssignmentFile`), student submissions (`AssignmentSubmission`), and audit logs (`AssignmentAudit`).
+   * Deleting an `AssignmentSubmission` cascades to delete its attachments (`SubmissionAttachment`), grades (`AssignmentGrade`), and feedbacks (`AssignmentFeedback`).
+
 ---
 
 ## ⚡ Index & Performance Optimizations
@@ -103,3 +114,4 @@ This document describes the database design, tables, relations, and optimization
 * **QR Dynamic Indexes**: Unique key index on `QRCode.codeValue` for rapid access key verification.
 * **Scan log uniqueness**: Unique indexes on `GeoValidation.scanLogId` and `DeviceValidation.scanLogId` for fast join lookups.
 * **Face Uniqueness Indexes**: Unique index on `FaceProfile.userId` for fast profile lookups, and unique indexes on `FaceAttendance.attendanceRecordId` and `FaceAttendance.verificationId` for one-to-one mapping queries.
+* **Assignment Indexes**: Combo unique index on `[assignmentId, studentId]` in `AssignmentSubmission` speeds up student status lookups. Unique index on `AssignmentGrade.submissionId` for fast grading lookups. Index on `Assignment.dueDate` for fast sorting of upcoming deadlines.

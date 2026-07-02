@@ -67,6 +67,10 @@ model User {
   faceVerifications            FaceVerification[]
   faceAudits                   FaceAudit[]
   faceApprovedRegistrations    FaceRegistration[]
+  assignmentsCreated           Assignment[]
+  assignmentSubmissions        AssignmentSubmission[]
+  assignmentFeedbacks          AssignmentFeedback[]
+  assignmentAudits             AssignmentAudit[]
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
 
@@ -183,6 +187,7 @@ model Department {
   laboratories       Laboratory[]
   facultyAssignments FacultyAssignment[]
   attendanceSessions AttendanceSession[]
+  assignments        Assignment[]
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
 }
@@ -206,6 +211,7 @@ model Section {
   timetables         Timetable[]
   attendanceSessions AttendanceSession[]
   defaulters         DefaulterList[]
+  assignments        Assignment[]
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
 }
@@ -223,6 +229,7 @@ model AcademicYear {
   calendars            AcademicCalendar[]
   timetables           Timetable[]
   attendanceSessions   AttendanceSession[]
+  assignments          Assignment[]
   createdAt            DateTime            @default(now())
   updatedAt            DateTime            @updatedAt
 }
@@ -238,6 +245,7 @@ model Program {
   sections     Section[]
   semesters    Semester[]
   attendanceSessions AttendanceSession[]
+  assignments        Assignment[]
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 }
@@ -274,6 +282,7 @@ model Semester {
   facultyAssignments FacultyAssignment[]
   timetables         Timetable[]
   attendanceSessions AttendanceSession[]
+  assignments        Assignment[]
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
 }
@@ -303,6 +312,7 @@ model Subject {
   timetableEntries    TimetableEntry[]
   attendanceSessions  AttendanceSession[]
   defaulters          DefaulterList[]
+  subjectAssignments  Assignment[]
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
 }
@@ -885,4 +895,105 @@ model SpoofDetection {
   spoofCategory    String            // PRINTED_PHOTO, PHONE_SCREEN, REPLAY_VIDEO, NONE
   isSpoofed        Boolean
   createdAt        DateTime          @default(now())
+}
+
+model Assignment {
+  id                String                 @id @default(uuid())
+  academicYearId    String
+  academicYear      AcademicYear           @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  departmentId      String
+  department        Department             @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  programId         String
+  program           Program                @relation(fields: [programId], references: [id], onDelete: Cascade)
+  semesterId        String
+  semester          Semester               @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  sectionId         String
+  section           Section                @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  subjectId         String
+  subject           Subject                @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  facultyId         String
+  faculty           User                   @relation(fields: [facultyId], references: [id], onDelete: Cascade)
+  assignmentType    String                 // HOMEWORK, PROJECT, LAB, EXAM
+  title             String
+  description       String?                @db.Text
+  instructions      String?                @db.Text
+  dueDate           DateTime
+  maxMarks          Float
+  allowedFileTypes  String                 // Comma-separated: e.g. "PDF,ZIP"
+  maxUploadSizeMb   Float                  @default(10.0)
+  status            String                 @default("DRAFT") // DRAFT, PUBLISHED
+  files             AssignmentFile[]
+  submissions       AssignmentSubmission[]
+  audits            AssignmentAudit[]
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+}
+
+model AssignmentFile {
+  id           String     @id @default(uuid())
+  assignmentId String
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  fileName     String
+  fileUrl      String
+  fileSize     Int
+  createdAt    DateTime   @default(now())
+}
+
+model AssignmentSubmission {
+  id           String                 @id @default(uuid())
+  assignmentId String
+  assignment   Assignment             @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  studentId    String
+  student      User                   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  status       String                 @default("SUBMITTED") // SUBMITTED, LATE, GRADED
+  submittedAt  DateTime               @default(now())
+  attachments  SubmissionAttachment[]
+  grade        AssignmentGrade?
+  feedback     AssignmentFeedback[]
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+
+  @@unique([assignmentId, studentId])
+}
+
+model SubmissionAttachment {
+  id           String               @id @default(uuid())
+  submissionId String
+  submission   AssignmentSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  fileName     String
+  fileUrl      String
+  fileSize     Int
+  createdAt    DateTime             @default(now())
+}
+
+model AssignmentFeedback {
+  id               String               @id @default(uuid())
+  submissionId     String
+  submission       AssignmentSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  facultyId        String
+  faculty          User                 @relation(fields: [facultyId], references: [id], onDelete: Cascade)
+  comments         String               @db.Text
+  annotatedFileUrl String?
+  createdAt        DateTime             @default(now())
+}
+
+model AssignmentGrade {
+  id           String               @id @default(uuid())
+  submissionId String               @unique
+  submission   AssignmentSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  marksObtained Float
+  isPublished  Boolean              @default(false)
+  gradedAt     DateTime             @default(now())
+}
+
+model AssignmentAudit {
+  id           String      @id @default(uuid())
+  assignmentId String?
+  assignment   Assignment? @relation(fields: [assignmentId], references: [id], onDelete: SetNull)
+  userId       String
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action       String      // CREATE_ASSIGNMENT, SUBMIT_ASSIGNMENT, GRADE_ASSIGNMENT, PUBLISH_GRADES
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime    @default(now())
 }
