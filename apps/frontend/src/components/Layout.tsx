@@ -28,7 +28,9 @@ import {
   Face as FaceIcon,
   Assignment as AssignmentIcon,
   AssignmentTurnedIn as ExamIcon,
-  Assessment as ResultIcon
+  Assessment as ResultIcon,
+  AppRegistration as AdmissionIcon,
+  ReceiptLong as FeeIcon
 } from '@mui/icons-material';
 
 const DRAWER_WIDTH = 260;
@@ -104,7 +106,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       { text: 'Face Scanner', icon: <FaceIcon />, path: '/face-recognition-dashboard' },
       { text: 'Assignments', icon: <AssignmentIcon />, path: '/assignment-dashboard' },
       { text: 'Exams', icon: <ExamIcon />, path: '/exam-dashboard' },
-      { text: 'Results', icon: <ResultIcon />, path: '/result-dashboard' }
+      { text: 'Results', icon: <ResultIcon />, path: '/result-dashboard' },
+      { text: 'Admissions', icon: <AdmissionIcon />, path: '/admission-dashboard' },
+      { text: 'Fees', icon: <FeeIcon />, path: '/fee-dashboard' }
     );
   } else if (user?.role === 'STUDENT') {
     menuItems.push(
@@ -117,7 +121,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       { text: 'Face Scanner', icon: <FaceIcon />, path: '/face-recognition-dashboard' },
       { text: 'Assignments', icon: <AssignmentIcon />, path: '/assignment-dashboard' },
       { text: 'Exams', icon: <ExamIcon />, path: '/exam-dashboard' },
-      { text: 'Results', icon: <ResultIcon />, path: '/result-dashboard' }
+      { text: 'Results', icon: <ResultIcon />, path: '/result-dashboard' },
+      { text: 'Admissions', icon: <AdmissionIcon />, path: '/admission-dashboard' },
+      { text: 'Fees', icon: <FeeIcon />, path: '/fee-dashboard' }
     );
   } else if (user?.role === 'TEACHER') {
     menuItems.push(
@@ -130,7 +136,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       { text: 'Face Scanner', icon: <FaceIcon />, path: '/face-recognition-dashboard' },
       { text: 'Assignments', icon: <AssignmentIcon />, path: '/assignment-dashboard' },
       { text: 'Exams', icon: <ExamIcon />, path: '/exam-dashboard' },
-      { text: 'Results', icon: <ResultIcon />, path: '/result-dashboard' }
+      { text: 'Results', icon: <ResultIcon />, path: '/result-dashboard' },
+      { text: 'Admissions', icon: <AdmissionIcon />, path: '/admission-dashboard' },
+      { text: 'Fees', icon: <FeeIcon />, path: '/fee-dashboard' }
     );
   } else {
     // Default fallback menu

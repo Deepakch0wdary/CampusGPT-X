@@ -1,6 +1,6 @@
 import uuid
 import enum
-from sqlalchemy import Column, String, Boolean, DateTime, Integer, ForeignKey, Text, UniqueConstraint, Float
+from sqlalchemy import Column, String, Boolean, DateTime, Integer, ForeignKey, Text, UniqueConstraint, Float, Numeric
 from sqlalchemy.orm import relationship, declarative_base
 from datetime import datetime
 
@@ -1373,3 +1373,328 @@ class ResultAudit(Base):
     createdAt = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="resultAudits")
+
+class AdmissionApplication(Base):
+    __tablename__ = "AdmissionApplication"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    applicationNumber = Column(String(191), unique=True, nullable=False)
+    academicYearId = Column(String(191), nullable=False)
+    departmentId = Column(String(191), nullable=False)
+    programId = Column(String(191), nullable=False)
+    applicantName = Column(String(191), nullable=False)
+    email = Column(String(191), nullable=False)
+    phone = Column(String(191), nullable=False)
+    dateOfBirth = Column(DateTime, nullable=False)
+    gender = Column(String(191), nullable=False)
+    nationality = Column(String(191), nullable=False)
+    category = Column(String(191), nullable=False)
+    quota = Column(String(191), nullable=False)
+    entranceExam = Column(String(191), nullable=True)
+    entranceScore = Column(Float, nullable=True)
+    previousInstitution = Column(String(191), nullable=True)
+    previousQualification = Column(String(191), nullable=True)
+    previousPercentage = Column(Float, nullable=True)
+    address = Column(Text, nullable=True)
+    guardianName = Column(String(191), nullable=True)
+    guardianPhone = Column(String(191), nullable=True)
+    guardianEmail = Column(String(191), nullable=True)
+    status = Column(String(191), default="DRAFT", nullable=False)
+    submittedAt = Column(DateTime, nullable=True)
+    reviewedAt = Column(DateTime, nullable=True)
+    approvedAt = Column(DateTime, nullable=True)
+    rejectedAt = Column(DateTime, nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    statusHistory = relationship("AdmissionStatusHistory", back_populates="application", cascade="all, delete-orphan")
+    documents = relationship("AdmissionDocument", back_populates="application", cascade="all, delete-orphan")
+    reviews = relationship("AdmissionReview", back_populates="application", cascade="all, delete-orphan")
+    enrollments = relationship("Enrollment", back_populates="application", cascade="all, delete-orphan")
+
+class AdmissionStatusHistory(Base):
+    __tablename__ = "AdmissionStatusHistory"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    applicationId = Column(String(191), ForeignKey("AdmissionApplication.id", ondelete="CASCADE"), nullable=False)
+    status = Column(String(191), nullable=False)
+    changedBy = Column(String(191), nullable=False)
+    remarks = Column(Text, nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    application = relationship("AdmissionApplication", back_populates="statusHistory")
+
+class AdmissionDocument(Base):
+    __tablename__ = "AdmissionDocument"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    applicationId = Column(String(191), ForeignKey("AdmissionApplication.id", ondelete="CASCADE"), nullable=False)
+    documentCategory = Column(String(191), nullable=False)
+    fileName = Column(String(191), nullable=False)
+    fileUrl = Column(String(191), nullable=False)
+    verificationStatus = Column(String(191), default="PENDING", nullable=False)
+    reviewerComments = Column(Text, nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    application = relationship("AdmissionApplication", back_populates="documents")
+    versions = relationship("AdmissionDocumentVersion", back_populates="document", cascade="all, delete-orphan")
+
+class AdmissionDocumentVersion(Base):
+    __tablename__ = "AdmissionDocumentVersion"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    documentId = Column(String(191), ForeignKey("AdmissionDocument.id", ondelete="CASCADE"), nullable=False)
+    fileUrl = Column(String(191), nullable=False)
+    uploadedAt = Column(DateTime, default=datetime.utcnow)
+
+    document = relationship("AdmissionDocument", back_populates="versions")
+
+class AdmissionReview(Base):
+    __tablename__ = "AdmissionReview"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    applicationId = Column(String(191), ForeignKey("AdmissionApplication.id", ondelete="CASCADE"), nullable=False)
+    reviewerId = Column(String(191), nullable=False)
+    action = Column(String(191), nullable=False)
+    comment = Column(Text, nullable=True)
+    previousStatus = Column(String(191), nullable=False)
+    newStatus = Column(String(191), nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    application = relationship("AdmissionApplication", back_populates="reviews")
+
+class Enrollment(Base):
+    __tablename__ = "Enrollment"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    applicationId = Column(String(191), ForeignKey("AdmissionApplication.id", ondelete="CASCADE"), nullable=False)
+    enrollmentNumber = Column(String(191), unique=True, nullable=False)
+    studentId = Column(String(191), nullable=False)
+    usn = Column(String(191), unique=True, nullable=False)
+    rollNumber = Column(String(191), nullable=False)
+    academicYearId = Column(String(191), nullable=False)
+    departmentId = Column(String(191), nullable=False)
+    programId = Column(String(191), nullable=False)
+    semesterNumber = Column(Integer, default=1, nullable=False)
+    sectionId = Column(String(191), nullable=True)
+    enrollmentDate = Column(DateTime, default=datetime.utcnow)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    application = relationship("AdmissionApplication", back_populates="enrollments")
+
+class FeeStructure(Base):
+    __tablename__ = "FeeStructure"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    academicYearId = Column(String(191), nullable=False)
+    programId = Column(String(191), nullable=False)
+    category = Column(String(191), nullable=True)
+    quota = Column(String(191), nullable=True)
+    currency = Column(String(191), default="INR", nullable=False)
+    status = Column(String(191), default="DRAFT", nullable=False)
+    version = Column(Integer, default=1, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    components = relationship("FeeComponent", back_populates="feeStructure", cascade="all, delete-orphan")
+    assignments = relationship("StudentFeeAssignment", back_populates="feeStructure", cascade="all, delete")
+
+class FeeComponent(Base):
+    __tablename__ = "FeeComponent"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    feeStructureId = Column(String(191), ForeignKey("FeeStructure.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String(191), nullable=False)
+    code = Column(String(191), nullable=False)
+    description = Column(Text, nullable=True)
+    amount = Column(Numeric(12, 2), nullable=False)
+    mandatory = Column(Boolean, default=True, nullable=False)
+    refundable = Column(Boolean, default=False, nullable=False)
+    dueDate = Column(DateTime, nullable=False)
+    sortOrder = Column(Integer, default=0, nullable=False)
+
+    feeStructure = relationship("FeeStructure", back_populates="components")
+
+class StudentFeeAssignment(Base):
+    __tablename__ = "StudentFeeAssignment"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    studentId = Column(String(191), nullable=False)
+    feeStructureId = Column(String(191), ForeignKey("FeeStructure.id", ondelete="RESTRICT"), nullable=False)
+    netPayable = Column(Numeric(12, 2), nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    feeStructure = relationship("FeeStructure", back_populates="assignments")
+
+class FeeInvoice(Base):
+    __tablename__ = "FeeInvoice"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    invoiceNumber = Column(String(191), unique=True, nullable=False)
+    studentId = Column(String(191), nullable=False)
+    enrollmentId = Column(String(191), nullable=True)
+    currency = Column(String(191), default="INR", nullable=False)
+    subtotal = Column(Numeric(12, 2), nullable=False)
+    scholarshipAmount = Column(Numeric(12, 2), default=0.0, nullable=False)
+    discountAmount = Column(Numeric(12, 2), default=0.0, nullable=False)
+    adjustmentAmount = Column(Numeric(12, 2), default=0.0, nullable=False)
+    taxAmount = Column(Numeric(12, 2), default=0.0, nullable=False)
+    totalAmount = Column(Numeric(12, 2), nullable=False)
+    paidAmount = Column(Numeric(12, 2), default=0.0, nullable=False)
+    balanceAmount = Column(Numeric(12, 2), nullable=False)
+    dueDate = Column(DateTime, nullable=False)
+    status = Column(String(191), default="DRAFT", nullable=False)
+    issuedAt = Column(DateTime, nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    items = relationship("InvoiceItem", back_populates="invoice", cascade="all, delete-orphan")
+    payments = relationship("Payment", back_populates="invoice", cascade="all, delete")
+
+class InvoiceItem(Base):
+    __tablename__ = "InvoiceItem"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    invoiceId = Column(String(191), ForeignKey("FeeInvoice.id", ondelete="CASCADE"), nullable=False)
+    componentName = Column(String(191), nullable=False)
+    componentCode = Column(String(191), nullable=False)
+    amount = Column(Numeric(12, 2), nullable=False)
+    description = Column(Text, nullable=True)
+
+    invoice = relationship("FeeInvoice", back_populates="items")
+
+class Payment(Base):
+    __tablename__ = "Payment"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    paymentNumber = Column(String(191), unique=True, nullable=False)
+    invoiceId = Column(String(191), ForeignKey("FeeInvoice.id", ondelete="RESTRICT"), nullable=False)
+    studentId = Column(String(191), nullable=False)
+    amount = Column(Numeric(12, 2), nullable=False)
+    currency = Column(String(191), default="INR", nullable=False)
+    method = Column(String(191), nullable=False)
+    status = Column(String(191), default="INITIATED", nullable=False)
+    provider = Column(String(191), default="MOCK", nullable=False)
+    providerOrderId = Column(String(191), nullable=True)
+    providerPaymentId = Column(String(191), nullable=True)
+    idempotencyKey = Column(String(191), unique=True, nullable=False)
+    paidAt = Column(DateTime, nullable=True)
+    failureReason = Column(Text, nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    invoice = relationship("FeeInvoice", back_populates="payments")
+    receipts = relationship("Receipt", back_populates="payment", cascade="all, delete-orphan")
+    refunds = relationship("Refund", back_populates="payment", cascade="all, delete-orphan")
+
+class WebhookEvent(Base):
+    __tablename__ = "WebhookEvent"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    eventId = Column(String(191), unique=True, nullable=False)
+    provider = Column(String(191), nullable=False)
+    payload = Column(Text, nullable=False)
+    processed = Column(Boolean, default=False, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+class Receipt(Base):
+    __tablename__ = "Receipt"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    receiptNumber = Column(String(191), unique=True, nullable=False)
+    paymentId = Column(String(191), ForeignKey("Payment.id", ondelete="RESTRICT"), nullable=False)
+    studentId = Column(String(191), nullable=False)
+    amount = Column(Numeric(12, 2), nullable=False)
+    currency = Column(String(191), default="INR", nullable=False)
+    issuedAt = Column(DateTime, default=datetime.utcnow)
+    verificationToken = Column(String(191), unique=True, nullable=False)
+
+    payment = relationship("Payment", back_populates="receipts")
+
+class Scholarship(Base):
+    __tablename__ = "Scholarship"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    name = Column(String(191), nullable=False)
+    type = Column(String(191), nullable=False)
+    description = Column(Text, nullable=True)
+    percentageAmount = Column(Float, nullable=True)
+    fixedAmount = Column(Numeric(12, 2), nullable=True)
+    maximumBenefit = Column(Numeric(12, 2), nullable=True)
+    eligibility = Column(Text, nullable=True)
+    validFrom = Column(DateTime, nullable=False)
+    validTo = Column(DateTime, nullable=False)
+    status = Column(String(191), default="ACTIVE", nullable=False)
+
+    applications = relationship("ScholarshipApplication", back_populates="scholarship", cascade="all, delete-orphan")
+
+class ScholarshipApplication(Base):
+    __tablename__ = "ScholarshipApplication"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    scholarshipId = Column(String(191), ForeignKey("Scholarship.id", ondelete="CASCADE"), nullable=False)
+    studentId = Column(String(191), nullable=False)
+    status = Column(String(191), default="SUBMITTED", nullable=False)
+    remarks = Column(Text, nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    scholarship = relationship("Scholarship", back_populates="applications")
+
+class StudentScholarship(Base):
+    __tablename__ = "StudentScholarship"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    studentId = Column(String(191), nullable=False)
+    scholarshipId = Column(String(191), nullable=False)
+    amountAwarded = Column(Numeric(12, 2), nullable=False)
+    awardedAt = Column(DateTime, default=datetime.utcnow)
+
+class Discount(Base):
+    __tablename__ = "Discount"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    name = Column(String(191), nullable=False)
+    discountType = Column(String(191), nullable=False)
+    percentage = Column(Float, nullable=True)
+    fixedAmount = Column(Numeric(12, 2), nullable=True)
+    status = Column(String(191), default="ACTIVE", nullable=False)
+
+class StudentDiscount(Base):
+    __tablename__ = "StudentDiscount"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    studentId = Column(String(191), nullable=False)
+    discountId = Column(String(191), nullable=False)
+    amount = Column(Numeric(12, 2), nullable=False)
+    appliedAt = Column(DateTime, default=datetime.utcnow)
+
+class FeeAdjustment(Base):
+    __tablename__ = "FeeAdjustment"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    studentId = Column(String(191), nullable=False)
+    invoiceId = Column(String(191), nullable=False)
+    amount = Column(Numeric(12, 2), nullable=False)
+    reason = Column(String(191), nullable=False)
+    createdBy = Column(String(191), nullable=False)
+    approvedBy = Column(String(191), nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+class Refund(Base):
+    __tablename__ = "Refund"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    paymentId = Column(String(191), ForeignKey("Payment.id", ondelete="RESTRICT"), nullable=False)
+    amount = Column(Numeric(12, 2), nullable=False)
+    reason = Column(String(191), nullable=False)
+    status = Column(String(191), default="PENDING", nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    payment = relationship("Payment", back_populates="refunds")
+
+class PaymentAdjustment(Base):
+    __tablename__ = "PaymentAdjustment"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    paymentId = Column(String(191), nullable=False)
+    amount = Column(Numeric(12, 2), nullable=False)
+    adjustmentType = Column(String(191), nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+class FeeReminder(Base):
+    __tablename__ = "FeeReminder"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    studentId = Column(String(191), nullable=False)
+    invoiceId = Column(String(191), nullable=False)
+    reminderType = Column(String(191), nullable=False)
+    channel = Column(String(191), nullable=False)
+    sentAt = Column(DateTime, default=datetime.utcnow)
+
+class FinancialAudit(Base):
+    __tablename__ = "FinancialAudit"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    entityType = Column(String(191), nullable=False)
+    entityId = Column(String(191), nullable=False)
+    action = Column(String(191), nullable=False)
+    userId = Column(String(191), nullable=False)
+    previousData = Column(Text, nullable=True)
+    newData = Column(Text, nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
