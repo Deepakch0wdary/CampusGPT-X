@@ -20,7 +20,27 @@ class Settings(BaseSettings):
     @classmethod
     def assemble_db_url(cls, v: str) -> str:
         import os
-        mode = os.environ.get("DATABASE_MODE", "mysql")
+        mode = os.environ.get("DATABASE_MODE")
+        if not mode:
+            # Try reading .env from current directory
+            for path in [".env", "apps/backend/.env", "../.env", "../../.env"]:
+                try:
+                    if os.path.exists(path):
+                        with open(path, "r") as f:
+                            for line in f:
+                                line = line.strip()
+                                if line and not line.startswith("#"):
+                                    parts = line.split("=", 1)
+                                    if len(parts) == 2 and parts[0].strip() == "DATABASE_MODE":
+                                        mode = parts[1].strip().strip('"').strip("'")
+                                        break
+                    if mode:
+                        break
+                except Exception:
+                    pass
+        if not mode:
+            mode = "mysql"
+
         if mode == "sqlite_demo":
             return "sqlite:///c:/Users/DELL/OneDrive/Desktop/CampusGPT/apps/backend/campusgpt.db"
         if isinstance(v, str) and v.startswith("mysql://"):

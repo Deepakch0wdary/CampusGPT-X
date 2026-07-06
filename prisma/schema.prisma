@@ -99,6 +99,25 @@ model User {
   acquisitionApprovals         BookAcquisitionRequest[] @relation("ApprovedAcquisitions")
   inventoryAudits              InventoryAudit[]         @relation("ConductedAudits")
   libraryAudits                LibraryAudit[]
+  hostelApplications           HostelApplication[]      @relation("StudentApplications")
+  reviewedHostelApplications   HostelApplication[]      @relation("WardenReviewedApplications")
+  hostelAllocations            HostelAllocation[]       @relation("StudentAllocations")
+  allocatedHostels             HostelAllocation[]       @relation("WardenAllocations")
+  wardenAssignments            HostelWardenAssignment[] @relation("WardenAssignments")
+  visitorRequests              HostelVisitor[]          @relation("StudentVisitors")
+  approvedVisitors             HostelVisitor[]          @relation("WardenVisitors")
+  hostelComplaints             HostelComplaint[]        @relation("StudentComplaints")
+  assignedComplaints           HostelComplaint[]        @relation("AssignedComplaints")
+  hostelComplaintComments      HostelComplaintComment[] @relation("UserComplaintComments")
+  assignedMaintenance          HostelMaintenanceRequest[] @relation("AssignedMaintenance")
+  hostelLeaveRequests          HostelLeaveRequest[]     @relation("StudentLeaves")
+  gatePasses                   HostelGatePass[]         @relation("StudentGatePasses")
+  messSubscriptions            MessSubscription[]       @relation("StudentSubscriptions")
+  messAttendances              MessAttendance[]         @relation("StudentMessAttendance")
+  hostelFines                  HostelFine[]             @relation("StudentFines")
+  waivedHostelFines            HostelFine[]             @relation("WardenWaivedFines")
+  reportedIncidents            HostelIncident[]         @relation("ReporterIncidents")
+  hostelAudits                 HostelAudit[]
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
 
@@ -2037,6 +2056,348 @@ model InventoryAuditItem {
 }
 
 model LibraryAudit {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action    String
+  details   String?  @db.Text
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Hostel {
+  id           String              @id @default(uuid())
+  name         String              @unique
+  code         String              @unique
+  hostelType   String              // BOYS, GIRLS, COED, STAFF, GUEST
+  description  String?             @db.Text
+  address      String?             @db.Text
+  capacity     Int
+  contactPhone String?
+  contactEmail String?
+  active       Boolean             @default(true)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  blocks       HostelBlock[]
+  applications HostelApplication[]
+  visitors     HostelVisitor[]
+  incidents    HostelIncident[]
+}
+
+model HostelBlock {
+  id          String         @id @default(uuid())
+  hostelId    String
+  hostel      Hostel         @relation(fields: [hostelId], references: [id], onDelete: Cascade)
+  name        String
+  code        String         @unique
+  description String?        @db.Text
+  totalFloors Int
+  active      Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  floors      HostelFloor[]
+}
+
+model HostelFloor {
+  id          String      @id @default(uuid())
+  blockId     String
+  block       HostelBlock @relation(fields: [blockId], references: [id], onDelete: Cascade)
+  floorNumber Int
+  name        String
+  active      Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  rooms       HostelRoom[]
+}
+
+model HostelRoom {
+  id           String              @id @default(uuid())
+  floorId      String
+  floor        HostelFloor         @relation(fields: [floorId], references: [id], onDelete: Cascade)
+  roomNumber   String              @unique
+  roomType     String              // SINGLE, DOUBLE, TRIPLE, FOUR_SHARING, DORMITORY, GUEST
+  capacity     Int
+  monthlyRate  Decimal
+  status       String              @default("AVAILABLE") // AVAILABLE, PARTIALLY_OCCUPIED, FULL, MAINTENANCE, BLOCKED
+  amenities    String?             @db.Text
+  active       Boolean             @default(true)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  beds         HostelBed[]
+}
+
+model HostelBed {
+  id          String             @id @default(uuid())
+  roomId      String
+  room        HostelRoom         @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  bedNumber   String
+  status      String             @default("AVAILABLE") // AVAILABLE, ALLOCATED, RESERVED, MAINTENANCE, BLOCKED
+  active      Boolean            @default(true)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  allocations HostelAllocation[]
+}
+
+model HostelApplication {
+  id                String             @id @default(uuid())
+  studentId         String
+  student           User               @relation("StudentApplications", fields: [studentId], references: [id], onDelete: Cascade)
+  academicYearId    String
+  preferredHostelId String
+  preferredHostel   Hostel             @relation(fields: [preferredHostelId], references: [id])
+  preferredRoomType String             // SINGLE, DOUBLE, TRIPLE, FOUR_SHARING, DORMITORY, GUEST
+  reason            String?            @db.Text
+  medicalNotes      String?            @db.Text
+  emergencyContact  String
+  status            String             @default("SUBMITTED") // DRAFT, SUBMITTED, UNDER_REVIEW, APPROVED, REJECTED, WAITLISTED, ALLOCATED, CANCELLED
+  submittedAt       DateTime           @default(now())
+  reviewedAt        DateTime?
+  reviewedBy        String?
+  reviewer          User?              @relation("WardenReviewedApplications", fields: [reviewedBy], references: [id])
+  allocations       HostelAllocation[]
+}
+
+model HostelAllocation {
+  id             String                 @id @default(uuid())
+  studentId      String
+  student        User                   @relation("StudentAllocations", fields: [studentId], references: [id], onDelete: Cascade)
+  applicationId  String
+  application    HostelApplication      @relation(fields: [applicationId], references: [id])
+  bedId          String
+  bed            HostelBed              @relation(fields: [bedId], references: [id])
+  allocatedBy    String
+  allocator      User                   @relation("WardenAllocations", fields: [allocatedBy], references: [id])
+  allocatedAt    DateTime               @default(now())
+  startDate      DateTime
+  expectedEndDate DateTime
+  actualEndDate  DateTime?
+  status         String                 @default("ACTIVE") // RESERVED, ACTIVE, TRANSFERRED, COMPLETED, CANCELLED
+  checkIns       HostelCheckIn[]
+  checkOuts      HostelCheckOut[]
+  leaves         HostelLeaveRequest[]
+  fines          HostelFine[]
+}
+
+model HostelCheckIn {
+  id             String           @id @default(uuid())
+  allocationId   String
+  allocation     HostelAllocation @relation(fields: [allocationId], references: [id], onDelete: Cascade)
+  checkedInAt    DateTime         @default(now())
+  checkedInBy    String
+  inventoryNotes String?          @db.Text
+  conditionNotes String?          @db.Text
+  acknowledgement Boolean         @default(false)
+}
+
+model HostelCheckOut {
+  id             String           @id @default(uuid())
+  allocationId   String
+  allocation     HostelAllocation @relation(fields: [allocationId], references: [id], onDelete: Cascade)
+  checkedOutAt   DateTime         @default(now())
+  checkedOutBy   String
+  damageNotes    String?          @db.Text
+  damageCost     Decimal          @default(0.0)
+  inventoryNotes String?          @db.Text
+  status         String           @default("COMPLETED") // COMPLETED, PENALIZED
+}
+
+model HostelTransferRequest {
+  id                  String   @id @default(uuid())
+  studentId           String
+  currentAllocationId String
+  preferredBedId      String
+  reason              String   @db.Text
+  status              String   @default("PENDING") // PENDING, APPROVED, REJECTED, COMPLETED, CANCELLED
+  reviewedBy          String?
+  reviewedAt          DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model HostelWardenAssignment {
+  id             String   @id @default(uuid())
+  wardenId       String
+  warden         User     @relation("WardenAssignments", fields: [wardenId], references: [id], onDelete: Cascade)
+  hostelId       String
+  blockId        String?
+  assignmentType String   // CHIEF_WARDEN, HOSTEL_WARDEN, ASSISTANT_WARDEN
+  startDate      DateTime
+  endDate        DateTime
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model HostelVisitor {
+  id                      String    @id @default(uuid())
+  visitorName             String
+  phone                   String
+  relation                String
+  studentId               String
+  student                 User      @relation("StudentVisitors", fields: [studentId], references: [id], onDelete: Cascade)
+  hostelId                String
+  hostel                  Hostel    @relation(fields: [hostelId], references: [id])
+  purpose                 String
+  identityType            String
+  identityReferenceMasked String
+  checkInAt               DateTime  @default(now())
+  checkOutAt              DateTime?
+  approvedBy              String?
+  approver                User?     @relation("WardenVisitors", fields: [approvedBy], references: [id])
+  status                  String    @default("PENDING") // PENDING, APPROVED, CHECKED_IN, CHECKED_OUT, REJECTED
+}
+
+model HostelComplaint {
+  id          String                   @id @default(uuid())
+  studentId   String
+  student     User                     @relation("StudentComplaints", fields: [studentId], references: [id], onDelete: Cascade)
+  category    String                   // ELECTRICAL, PLUMBING, CLEANING, INTERNET, FURNITURE, SECURITY, MESS, OTHER
+  priority    String                   // LOW, MEDIUM, HIGH, CRITICAL
+  description String                   @db.Text
+  assignedTo  String?
+  assignee    User?                    @relation("AssignedComplaints", fields: [assignedTo], references: [id])
+  status      String                   @default("OPEN") // OPEN, ASSIGNED, IN_PROGRESS, RESOLVED, CLOSED, REJECTED
+  openedAt    DateTime                 @default(now())
+  resolvedAt  DateTime?
+  createdAt   DateTime                 @default(now())
+  updatedAt   DateTime                 @updatedAt
+  comments    HostelComplaintComment[]
+}
+
+model HostelComplaintComment {
+  id          String          @id @default(uuid())
+  complaintId String
+  complaint   HostelComplaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User            @relation("UserComplaintComments", fields: [userId], references: [id], onDelete: Cascade)
+  commentText String          @db.Text
+  createdAt   DateTime        @default(now())
+}
+
+model HostelMaintenanceRequest {
+  id           String    @id @default(uuid())
+  hostelId     String
+  roomId       String?
+  bedId        String?
+  category     String
+  description  String    @db.Text
+  priority     String
+  assignedTo   String
+  assignee     User      @relation("AssignedMaintenance", fields: [assignedTo], references: [id])
+  status       String    @default("OPEN")
+  estimatedCost Decimal
+  actualCost   Decimal   @default(0.0)
+  openedAt     DateTime  @default(now())
+  completedAt  DateTime?
+}
+
+model HostelLeaveRequest {
+  id              String           @id @default(uuid())
+  studentId       String
+  student         User             @relation("StudentLeaves", fields: [studentId], references: [id], onDelete: Cascade)
+  allocationId    String
+  allocation      HostelAllocation @relation(fields: [allocationId], references: [id], onDelete: Cascade)
+  leaveType       String
+  reason          String           @db.Text
+  destination     String
+  startAt         DateTime
+  expectedReturnAt DateTime
+  actualReturnAt  DateTime?
+  guardianContact String
+  status          String           @default("PENDING") // PENDING, APPROVED, REJECTED, OUT, RETURNED, OVERDUE, CANCELLED
+}
+
+model HostelGatePass {
+  id             String   @id @default(uuid())
+  studentId      String
+  student        User     @relation("StudentGatePasses", fields: [studentId], references: [id], onDelete: Cascade)
+  leaveRequestId String?
+  passToken      String   @unique
+  purpose        String
+  expiryAt       DateTime
+  status         String   @default("ACTIVE") // ACTIVE, USED, EXPIRED
+}
+
+model MessPlan {
+  id           String             @id @default(uuid())
+  name         String             @unique
+  description  String?            @db.Text
+  costPerMonth Decimal
+  foodType     String             // VEG, NON_VEG, MIXED, CUSTOM
+  active       Boolean            @default(true)
+  subscriptions MessSubscription[]
+  attendances   MessAttendance[]
+}
+
+model MessSubscription {
+  id        String   @id @default(uuid())
+  studentId String
+  student   User     @relation("StudentSubscriptions", fields: [studentId], references: [id], onDelete: Cascade)
+  planId    String
+  plan      MessPlan @relation(fields: [planId], references: [id])
+  startDate DateTime
+  endDate   DateTime
+  status    String   @default("ACTIVE") // ACTIVE, SUSPENDED, EXPIRED
+}
+
+model MessMenu {
+  id          String   @id @default(uuid())
+  planId      String
+  dayOfWeek   String
+  mealType    String   // BREAKFAST, LUNCH, SNACK, DINNER
+  menuDetails String   @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model MessAttendance {
+  id              String   @id @default(uuid())
+  studentId       String
+  student         User     @relation("StudentMessAttendance", fields: [studentId], references: [id], onDelete: Cascade)
+  planId          String
+  plan            MessPlan @relation(fields: [planId], references: [id])
+  mealDate        DateTime
+  mealType        String   // BREAKFAST, LUNCH, SNACK, DINNER
+  status          String   @default("PRESENT") // PRESENT, ABSENT
+  qrCodeScanned   Boolean  @default(false)
+}
+
+model HostelFine {
+  id           String            @id @default(uuid())
+  studentId    String
+  student      User              @relation("StudentFines", fields: [studentId], references: [id], onDelete: Cascade)
+  allocationId String?
+  allocation   HostelAllocation? @relation(fields: [allocationId], references: [id])
+  fineType     String            // DAMAGE, LATE_RETURN, RULE_VIOLATION, LOST_PROPERTY, OTHER
+  amount       Decimal
+  reason       String
+  status       String            @default("PENDING") // PENDING, PAID, WAIVED, CANCELLED
+  assessedAt   DateTime          @default(now())
+  paidAt       DateTime?
+  waivedAt     DateTime?
+  waivedBy     String?
+  waiverUser   User?             @relation("WardenWaivedFines", fields: [waivedBy], references: [id])
+  waiverReason String?           @db.Text
+}
+
+model HostelIncident {
+  id          String   @id @default(uuid())
+  hostelId    String
+  hostel      Hostel   @relation(fields: [hostelId], references: [id], onDelete: Cascade)
+  reporterId  String
+  reporter    User     @relation("ReporterIncidents", fields: [reporterId], references: [id])
+  title       String
+  description String   @db.Text
+  severity    String   // LOW, MEDIUM, HIGH, CRITICAL
+  reportedAt  DateTime @default(now())
+  actionTaken String?  @db.Text
+  status      String   @default("OPEN") // OPEN, INVESTIGATING, RESOLVED, CLOSED
+}
+
+model HostelAudit {
   id        String   @id @default(uuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)

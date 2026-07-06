@@ -142,6 +142,26 @@ class User(Base):
     inventoryAudits = relationship("InventoryAudit", foreign_keys="[InventoryAudit.conductedBy]", back_populates="conductor", cascade="all, delete-orphan")
     libraryAudits = relationship("LibraryAudit", back_populates="user", cascade="all, delete-orphan")
 
+    hostelApplications = relationship("HostelApplication", foreign_keys="[HostelApplication.studentId]", back_populates="student", cascade="all, delete-orphan")
+    reviewedHostelApplications = relationship("HostelApplication", foreign_keys="[HostelApplication.reviewedBy]", back_populates="reviewer", cascade="all, delete-orphan")
+    hostelAllocations = relationship("HostelAllocation", foreign_keys="[HostelAllocation.studentId]", back_populates="student", cascade="all, delete-orphan")
+    allocatedHostels = relationship("HostelAllocation", foreign_keys="[HostelAllocation.allocatedBy]", back_populates="allocator", cascade="all, delete-orphan")
+    wardenAssignments = relationship("HostelWardenAssignment", back_populates="warden", cascade="all, delete-orphan")
+    visitorRequests = relationship("HostelVisitor", foreign_keys="[HostelVisitor.studentId]", back_populates="student", cascade="all, delete-orphan")
+    approvedVisitors = relationship("HostelVisitor", foreign_keys="[HostelVisitor.approvedBy]", back_populates="approver", cascade="all, delete-orphan")
+    hostelComplaints = relationship("HostelComplaint", foreign_keys="[HostelComplaint.studentId]", back_populates="student", cascade="all, delete-orphan")
+    assignedComplaints = relationship("HostelComplaint", foreign_keys="[HostelComplaint.assignedTo]", back_populates="assignee", cascade="all, delete-orphan")
+    hostelComplaintComments = relationship("HostelComplaintComment", back_populates="user", cascade="all, delete-orphan")
+    assignedMaintenance = relationship("HostelMaintenanceRequest", back_populates="assignee", cascade="all, delete-orphan")
+    hostelLeaveRequests = relationship("HostelLeaveRequest", back_populates="student", cascade="all, delete-orphan")
+    gatePasses = relationship("HostelGatePass", back_populates="student", cascade="all, delete-orphan")
+    messSubscriptions = relationship("MessSubscription", back_populates="student", cascade="all, delete-orphan")
+    messAttendances = relationship("MessAttendance", back_populates="student", cascade="all, delete-orphan")
+    hostelFines = relationship("HostelFine", foreign_keys="[HostelFine.studentId]", back_populates="student", cascade="all, delete-orphan")
+    waivedHostelFines = relationship("HostelFine", foreign_keys="[HostelFine.waivedBy]", back_populates="waiverUser", cascade="all, delete-orphan")
+    reportedIncidents = relationship("HostelIncident", back_populates="reporter", cascade="all, delete-orphan")
+    hostelAudits = relationship("HostelAudit", back_populates="user", cascade="all, delete-orphan")
+
 class UserProfile(Base):
     __tablename__ = "UserProfile"
     id = Column(String(191), primary_key=True, default=generate_uuid)
@@ -2123,4 +2143,389 @@ class LibraryAudit(Base):
     createdAt = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="libraryAudits")
+
+
+class Hostel(Base):
+    __tablename__ = "Hostel"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    name = Column(String(191), unique=True, nullable=False)
+    code = Column(String(191), unique=True, nullable=False)
+    hostelType = Column(String(191), nullable=False)  # BOYS, GIRLS, COED, STAFF, GUEST
+    description = Column(Text, nullable=True)
+    address = Column(Text, nullable=True)
+    capacity = Column(Integer, nullable=False)
+    contactPhone = Column(String(191), nullable=True)
+    contactEmail = Column(String(191), nullable=True)
+    active = Column(Boolean, default=True, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    blocks = relationship("HostelBlock", back_populates="hostel", cascade="all, delete-orphan")
+    applications = relationship("HostelApplication", back_populates="preferredHostel")
+    visitors = relationship("HostelVisitor", back_populates="hostel")
+    incidents = relationship("HostelIncident", back_populates="hostel", cascade="all, delete-orphan")
+
+
+class HostelBlock(Base):
+    __tablename__ = "HostelBlock"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    hostelId = Column(String(191), ForeignKey("Hostel.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String(191), nullable=False)
+    code = Column(String(191), unique=True, nullable=False)
+    description = Column(Text, nullable=True)
+    totalFloors = Column(Integer, nullable=False)
+    active = Column(Boolean, default=True, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    hostel = relationship("Hostel", back_populates="blocks")
+    floors = relationship("HostelFloor", back_populates="block", cascade="all, delete-orphan")
+
+
+class HostelFloor(Base):
+    __tablename__ = "HostelFloor"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    blockId = Column(String(191), ForeignKey("HostelBlock.id", ondelete="CASCADE"), nullable=False)
+    floorNumber = Column(Integer, nullable=False)
+    name = Column(String(191), nullable=False)
+    active = Column(Boolean, default=True, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    block = relationship("HostelBlock", back_populates="floors")
+    rooms = relationship("HostelRoom", back_populates="floor", cascade="all, delete-orphan")
+
+
+class HostelRoom(Base):
+    __tablename__ = "HostelRoom"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    floorId = Column(String(191), ForeignKey("HostelFloor.id", ondelete="CASCADE"), nullable=False)
+    roomNumber = Column(String(191), unique=True, nullable=False)
+    roomType = Column(String(191), nullable=False)  # SINGLE, DOUBLE, TRIPLE, FOUR_SHARING, DORMITORY, GUEST
+    capacity = Column(Integer, nullable=False)
+    monthlyRate = Column(Numeric(precision=10, scale=2, asdecimal=True), nullable=False)
+    status = Column(String(191), default="AVAILABLE", nullable=False)  # AVAILABLE, PARTIALLY_OCCUPIED, FULL, MAINTENANCE, BLOCKED
+    amenities = Column(Text, nullable=True)
+    active = Column(Boolean, default=True, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    floor = relationship("HostelFloor", back_populates="rooms")
+    beds = relationship("HostelBed", back_populates="room", cascade="all, delete-orphan")
+
+
+class HostelBed(Base):
+    __tablename__ = "HostelBed"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    roomId = Column(String(191), ForeignKey("HostelRoom.id", ondelete="CASCADE"), nullable=False)
+    bedNumber = Column(String(191), nullable=False)
+    status = Column(String(191), default="AVAILABLE", nullable=False)  # AVAILABLE, ALLOCATED, RESERVED, MAINTENANCE, BLOCKED
+    active = Column(Boolean, default=True, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    room = relationship("HostelRoom", back_populates="beds")
+    allocations = relationship("HostelAllocation", back_populates="bed", cascade="all, delete-orphan")
+
+
+class HostelApplication(Base):
+    __tablename__ = "HostelApplication"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    studentId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    academicYearId = Column(String(191), nullable=False)
+    preferredHostelId = Column(String(191), ForeignKey("Hostel.id"), nullable=False)
+    preferredRoomType = Column(String(191), nullable=False)
+    reason = Column(Text, nullable=True)
+    medicalNotes = Column(Text, nullable=True)
+    emergencyContact = Column(String(191), nullable=False)
+    status = Column(String(191), default="SUBMITTED", nullable=False)  # DRAFT, SUBMITTED, UNDER_REVIEW, APPROVED, REJECTED, WAITLISTED, ALLOCATED, CANCELLED
+    submittedAt = Column(DateTime, default=datetime.utcnow)
+    reviewedAt = Column(DateTime, nullable=True)
+    reviewedBy = Column(String(191), ForeignKey("User.id", ondelete="SET NULL"), nullable=True)
+
+    student = relationship("User", foreign_keys=[studentId], back_populates="hostelApplications")
+    reviewer = relationship("User", foreign_keys=[reviewedBy], back_populates="reviewedHostelApplications")
+    preferredHostel = relationship("Hostel", back_populates="applications")
+    allocations = relationship("HostelAllocation", back_populates="application", cascade="all, delete-orphan")
+
+
+class HostelAllocation(Base):
+    __tablename__ = "HostelAllocation"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    studentId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    applicationId = Column(String(191), ForeignKey("HostelApplication.id"), nullable=False)
+    bedId = Column(String(191), ForeignKey("HostelBed.id"), nullable=False)
+    allocatedBy = Column(String(191), ForeignKey("User.id"), nullable=False)
+    allocatedAt = Column(DateTime, default=datetime.utcnow)
+    startDate = Column(DateTime, nullable=False)
+    expectedEndDate = Column(DateTime, nullable=False)
+    actualEndDate = Column(DateTime, nullable=True)
+    status = Column(String(191), default="ACTIVE", nullable=False)  # RESERVED, ACTIVE, TRANSFERRED, COMPLETED, CANCELLED
+
+    student = relationship("User", foreign_keys=[studentId], back_populates="hostelAllocations")
+    allocator = relationship("User", foreign_keys=[allocatedBy], back_populates="allocatedHostels")
+    application = relationship("HostelApplication", back_populates="allocations")
+    bed = relationship("HostelBed", back_populates="allocations")
+    checkIns = relationship("HostelCheckIn", back_populates="allocation", cascade="all, delete-orphan")
+    checkOuts = relationship("HostelCheckOut", back_populates="allocation", cascade="all, delete-orphan")
+    leaves = relationship("HostelLeaveRequest", back_populates="allocation", cascade="all, delete-orphan")
+    fines = relationship("HostelFine", back_populates="allocation")
+
+
+class HostelCheckIn(Base):
+    __tablename__ = "HostelCheckIn"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    allocationId = Column(String(191), ForeignKey("HostelAllocation.id", ondelete="CASCADE"), nullable=False)
+    checkedInAt = Column(DateTime, default=datetime.utcnow)
+    checkedInBy = Column(String(191), nullable=False)
+    inventoryNotes = Column(Text, nullable=True)
+    conditionNotes = Column(Text, nullable=True)
+    acknowledgement = Column(Boolean, default=False, nullable=False)
+
+    allocation = relationship("HostelAllocation", back_populates="checkIns")
+
+
+class HostelCheckOut(Base):
+    __tablename__ = "HostelCheckOut"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    allocationId = Column(String(191), ForeignKey("HostelAllocation.id", ondelete="CASCADE"), nullable=False)
+    checkedOutAt = Column(DateTime, default=datetime.utcnow)
+    checkedOutBy = Column(String(191), nullable=False)
+    damageNotes = Column(Text, nullable=True)
+    damageCost = Column(Numeric(precision=10, scale=2, asdecimal=True), default=0.0, nullable=False)
+    inventoryNotes = Column(Text, nullable=True)
+    status = Column(String(191), default="COMPLETED", nullable=False)  # COMPLETED, PENALIZED
+
+    allocation = relationship("HostelAllocation", back_populates="checkOuts")
+
+
+class HostelTransferRequest(Base):
+    __tablename__ = "HostelTransferRequest"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    studentId = Column(String(191), nullable=False)
+    currentAllocationId = Column(String(191), nullable=False)
+    preferredBedId = Column(String(191), nullable=False)
+    reason = Column(Text, nullable=False)
+    status = Column(String(191), default="PENDING", nullable=False)  # PENDING, APPROVED, REJECTED, COMPLETED, CANCELLED
+    reviewedBy = Column(String(191), nullable=True)
+    reviewedAt = Column(DateTime, nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class HostelWardenAssignment(Base):
+    __tablename__ = "HostelWardenAssignment"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    wardenId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    hostelId = Column(String(191), nullable=False)
+    blockId = Column(String(191), nullable=True)
+    assignmentType = Column(String(191), nullable=False)  # CHIEF_WARDEN, HOSTEL_WARDEN, ASSISTANT_WARDEN
+    startDate = Column(DateTime, nullable=False)
+    endDate = Column(DateTime, nullable=False)
+    active = Column(Boolean, default=True, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    warden = relationship("User", back_populates="wardenAssignments")
+
+
+class HostelVisitor(Base):
+    __tablename__ = "HostelVisitor"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    visitorName = Column(String(191), nullable=False)
+    phone = Column(String(191), nullable=False)
+    relation = Column(String(191), nullable=False)
+    studentId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    hostelId = Column(String(191), ForeignKey("Hostel.id"), nullable=False)
+    purpose = Column(String(191), nullable=False)
+    identityType = Column(String(191), nullable=False)
+    identityReferenceMasked = Column(String(191), nullable=False)
+    checkInAt = Column(DateTime, default=datetime.utcnow)
+    checkOutAt = Column(DateTime, nullable=True)
+    approvedBy = Column(String(191), ForeignKey("User.id"), nullable=True)
+    status = Column(String(191), default="PENDING", nullable=False)  # PENDING, APPROVED, CHECKED_IN, CHECKED_OUT, REJECTED
+
+    student = relationship("User", foreign_keys=[studentId], back_populates="visitorRequests")
+    approver = relationship("User", foreign_keys=[approvedBy], back_populates="approvedVisitors")
+    hostel = relationship("Hostel", back_populates="visitors")
+
+
+class HostelComplaint(Base):
+    __tablename__ = "HostelComplaint"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    studentId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    category = Column(String(191), nullable=False)  # ELECTRICAL, PLUMBING, CLEANING, INTERNET, FURNITURE, SECURITY, MESS, OTHER
+    priority = Column(String(191), nullable=False)  # LOW, MEDIUM, HIGH, CRITICAL
+    description = Column(Text, nullable=False)
+    assignedTo = Column(String(191), ForeignKey("User.id", ondelete="SET NULL"), nullable=True)
+    status = Column(String(191), default="OPEN", nullable=False)  # OPEN, ASSIGNED, IN_PROGRESS, RESOLVED, CLOSED, REJECTED
+    openedAt = Column(DateTime, default=datetime.utcnow)
+    resolvedAt = Column(DateTime, nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    student = relationship("User", foreign_keys=[studentId], back_populates="hostelComplaints")
+    assignee = relationship("User", foreign_keys=[assignedTo], back_populates="assignedComplaints")
+    comments = relationship("HostelComplaintComment", back_populates="complaint", cascade="all, delete-orphan")
+
+
+class HostelComplaintComment(Base):
+    __tablename__ = "HostelComplaintComment"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    complaintId = Column(String(191), ForeignKey("HostelComplaint.id", ondelete="CASCADE"), nullable=False)
+    userId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    commentText = Column(Text, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    complaint = relationship("HostelComplaint", back_populates="comments")
+    user = relationship("User", back_populates="hostelComplaintComments")
+
+
+class HostelMaintenanceRequest(Base):
+    __tablename__ = "HostelMaintenanceRequest"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    hostelId = Column(String(191), nullable=False)
+    roomId = Column(String(191), nullable=True)
+    bedId = Column(String(191), nullable=True)
+    category = Column(String(191), nullable=False)
+    description = Column(Text, nullable=False)
+    priority = Column(String(191), nullable=False)
+    assignedTo = Column(String(191), ForeignKey("User.id"), nullable=False)
+    status = Column(String(191), default="OPEN", nullable=False)
+    estimatedCost = Column(Numeric(precision=10, scale=2, asdecimal=True), nullable=False)
+    actualCost = Column(Numeric(precision=10, scale=2, asdecimal=True), default=0.0, nullable=False)
+    openedAt = Column(DateTime, default=datetime.utcnow)
+    completedAt = Column(DateTime, nullable=True)
+
+    assignee = relationship("User", back_populates="assignedMaintenance")
+
+
+class HostelLeaveRequest(Base):
+    __tablename__ = "HostelLeaveRequest"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    studentId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    allocationId = Column(String(191), ForeignKey("HostelAllocation.id", ondelete="CASCADE"), nullable=False)
+    leaveType = Column(String(191), nullable=False)
+    reason = Column(Text, nullable=False)
+    destination = Column(String(191), nullable=False)
+    startAt = Column(DateTime, nullable=False)
+    expectedReturnAt = Column(DateTime, nullable=False)
+    actualReturnAt = Column(DateTime, nullable=True)
+    guardianContact = Column(String(191), nullable=False)
+    status = Column(String(191), default="PENDING", nullable=False)  # PENDING, APPROVED, REJECTED, OUT, RETURNED, OVERDUE, CANCELLED
+
+    student = relationship("User", back_populates="hostelLeaveRequests")
+    allocation = relationship("HostelAllocation", back_populates="leaves")
+
+
+class HostelGatePass(Base):
+    __tablename__ = "HostelGatePass"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    studentId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    leaveRequestId = Column(String(191), nullable=True)
+    passToken = Column(String(191), unique=True, nullable=False)
+    purpose = Column(String(191), nullable=False)
+    expiryAt = Column(DateTime, nullable=False)
+    status = Column(String(191), default="ACTIVE", nullable=False)  # ACTIVE, USED, EXPIRED
+
+    student = relationship("User", back_populates="gatePasses")
+
+
+class MessPlan(Base):
+    __tablename__ = "MessPlan"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    name = Column(String(191), unique=True, nullable=False)
+    description = Column(Text, nullable=True)
+    costPerMonth = Column(Numeric(precision=10, scale=2, asdecimal=True), nullable=False)
+    foodType = Column(String(191), nullable=False)  # VEG, NON_VEG, MIXED, CUSTOM
+    active = Column(Boolean, default=True, nullable=False)
+
+    subscriptions = relationship("MessSubscription", back_populates="plan", cascade="all, delete-orphan")
+    attendances = relationship("MessAttendance", back_populates="plan", cascade="all, delete-orphan")
+
+
+class MessSubscription(Base):
+    __tablename__ = "MessSubscription"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    studentId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    planId = Column(String(191), ForeignKey("MessPlan.id"), nullable=False)
+    startDate = Column(DateTime, nullable=False)
+    endDate = Column(DateTime, nullable=False)
+    status = Column(String(191), default="ACTIVE", nullable=False)  # ACTIVE, SUSPENDED, EXPIRED
+
+    student = relationship("User", back_populates="messSubscriptions")
+    plan = relationship("MessPlan", back_populates="subscriptions")
+
+
+class MessMenu(Base):
+    __tablename__ = "MessMenu"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    planId = Column(String(191), nullable=False)
+    dayOfWeek = Column(String(191), nullable=False)
+    mealType = Column(String(191), nullable=False)  # BREAKFAST, LUNCH, SNACK, DINNER
+    menuDetails = Column(Text, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class MessAttendance(Base):
+    __tablename__ = "MessAttendance"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    studentId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    planId = Column(String(191), ForeignKey("MessPlan.id"), nullable=False)
+    mealDate = Column(DateTime, nullable=False)
+    mealType = Column(String(191), nullable=False)  # BREAKFAST, LUNCH, SNACK, DINNER
+    status = Column(String(191), default="PRESENT", nullable=False)  # PRESENT, ABSENT
+    qrCodeScanned = Column(Boolean, default=False, nullable=False)
+
+    student = relationship("User", back_populates="messAttendances")
+    plan = relationship("MessPlan", back_populates="attendances")
+
+
+class HostelFine(Base):
+    __tablename__ = "HostelFine"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    studentId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    allocationId = Column(String(191), ForeignKey("HostelAllocation.id"), nullable=True)
+    fineType = Column(String(191), nullable=False)  # DAMAGE, LATE_RETURN, RULE_VIOLATION, LOST_PROPERTY, OTHER
+    amount = Column(Numeric(precision=10, scale=2, asdecimal=True), nullable=False)
+    reason = Column(String(191), nullable=False)
+    status = Column(String(191), default="PENDING", nullable=False)  # PENDING, PAID, WAIVED, CANCELLED
+    assessedAt = Column(DateTime, default=datetime.utcnow)
+    paidAt = Column(DateTime, nullable=True)
+    waivedAt = Column(DateTime, nullable=True)
+    waivedBy = Column(String(191), ForeignKey("User.id"), nullable=True)
+    waiverReason = Column(Text, nullable=True)
+
+    student = relationship("User", foreign_keys=[studentId], back_populates="hostelFines")
+    waiverUser = relationship("User", foreign_keys=[waivedBy], back_populates="waivedHostelFines")
+    allocation = relationship("HostelAllocation", back_populates="fines")
+
+
+class HostelIncident(Base):
+    __tablename__ = "HostelIncident"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    hostelId = Column(String(191), ForeignKey("Hostel.id", ondelete="CASCADE"), nullable=False)
+    reporterId = Column(String(191), ForeignKey("User.id"), nullable=False)
+    title = Column(String(191), nullable=False)
+    description = Column(Text, nullable=False)
+    severity = Column(String(191), nullable=False)  # LOW, MEDIUM, HIGH, CRITICAL
+    reportedAt = Column(DateTime, default=datetime.utcnow)
+    actionTaken = Column(Text, nullable=True)
+    status = Column(String(191), default="OPEN", nullable=False)  # OPEN, INVESTIGATING, RESOLVED, CLOSED
+
+    hostel = relationship("Hostel", back_populates="incidents")
+    reporter = relationship("User", back_populates="reportedIncidents")
+
+
+class HostelAudit(Base):
+    __tablename__ = "HostelAudit"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    userId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    action = Column(String(191), nullable=False)
+    details = Column(Text, nullable=True)
+    ipAddress = Column(String(191), nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="hostelAudits")
 
