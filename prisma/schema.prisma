@@ -90,6 +90,15 @@ model User {
   sentParentMessages           ParentMessage[]          @relation("ParentSent")
   receivedParentMessages       ParentMessage[]          @relation("ParentReceived")
   parentAudits                 ParentAudit[]
+  libraryMembership            LibraryMembership?
+  loansIssued                  BookLoan[]               @relation("LoansIssued")
+  renewalsCreated              LoanRenewal[]            @relation("RenewalsCreated")
+  finesWaived                  LibraryFine[]            @relation("FinesWaived")
+  inventoryEvents              LibraryInventoryEvent[]  @relation("InventoryEvents")
+  acquisitionRequests          BookAcquisitionRequest[] @relation("RequestedAcquisitions")
+  acquisitionApprovals         BookAcquisitionRequest[] @relation("ApprovedAcquisitions")
+  inventoryAudits              InventoryAudit[]         @relation("ConductedAudits")
+  libraryAudits                LibraryAudit[]
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
 
@@ -1680,3 +1689,363 @@ model ParentAudit {
   @@index([userId])
   @@index([createdAt])
 }
+
+model LibraryBranch {
+  id           String              @id @default(uuid())
+  name         String
+  code         String              @unique
+  description  String?             @db.Text
+  location     String?
+  contactEmail String?
+  contactPhone String?
+  openingTime  String?
+  closingTime  String?
+  active       Boolean             @default(true)
+  copies       BookCopy[]
+  memberships  LibraryMembership[]
+  policies     LibraryPolicy[]
+  audits       InventoryAudit[]
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+}
+
+model Author {
+  id          String       @id @default(uuid())
+  name        String       @unique
+  biography   String?      @db.Text
+  bookAuthors BookAuthor[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Publisher {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  address   String?  @db.Text
+  books     Book[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model BookCategory {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  code      String   @unique
+  books     Book[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Book {
+  id              String                 @id @default(uuid())
+  isbn10          String?
+  isbn13          String                 @unique
+  title           String
+  subtitle        String?
+  description     String?                @db.Text
+  edition         String?
+  publicationYear Int
+  language        String
+  pageCount       Int
+  coverImageUrl   String?
+  publisherId     String
+  publisher       Publisher              @relation(fields: [publisherId], references: [id])
+  categoryId      String
+  category        BookCategory           @relation(fields: [categoryId], references: [id])
+  bookAuthors     BookAuthor[]
+  tags            BookTag[]
+  copies          BookCopy[]
+  reservations    BookReservation[]
+  acquisitionItems BookAcquisitionItem[]
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  @@index([publisherId])
+  @@index([categoryId])
+}
+
+model BookAuthor {
+  id       String @id @default(uuid())
+  bookId   String
+  book     Book   @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  authorId String
+  author   Author @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@unique([bookId, authorId])
+  @@index([bookId])
+  @@index([authorId])
+}
+
+model BookTag {
+  id     String @id @default(uuid())
+  bookId String
+  book   Book   @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  name   String
+
+  @@unique([bookId, name])
+  @@index([bookId])
+}
+
+model BookCopy {
+  id              String                 @id @default(uuid())
+  bookId          String
+  book            Book                   @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  branchId        String
+  branch          LibraryBranch          @relation(fields: [branchId], references: [id])
+  accessionNumber String                 @unique
+  barcode         String                 @unique
+  qrCode          String?
+  shelfLocation   String?
+  rackNumber      String?
+  acquisitionDate DateTime
+  acquisitionPrice Decimal                @db.Decimal(10, 2)
+  source          String?
+  condition       String                 @default("GOOD")
+  status          String                 @default("AVAILABLE") // AVAILABLE, ISSUED, RESERVED, LOST, DAMAGED, REPAIR, WITHDRAWN
+  loans           BookLoan[]
+  events          LibraryInventoryEvent[]
+  auditItems      InventoryAuditItem[]
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  @@index([bookId])
+  @@index([branchId])
+}
+
+model LibraryMembership {
+  id               String            @id @default(uuid())
+  userId           String            @unique
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  membershipNumber String            @unique
+  memberType       String            // STUDENT, FACULTY, STAFF, ALUMNI, OTHER
+  branchId         String?
+  branch           LibraryBranch?    @relation(fields: [branchId], references: [id])
+  activatedAt      DateTime
+  expiresAt        DateTime
+  status           String            @default("ACTIVE") // ACTIVE, SUSPENDED, EXPIRED, BLOCKED
+  loans            BookLoan[]
+  reservations     BookReservation[]
+  fines            LibraryFine[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@index([branchId])
+}
+
+model LibraryPolicy {
+  id               String        @id @default(uuid())
+  memberType       String        // STUDENT, FACULTY, STAFF, ALUMNI, OTHER
+  branchId         String
+  branch           LibraryBranch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  maxBooks         Int
+  loanDays         Int
+  renewalLimit     Int
+  reservationLimit Int
+  finePerDay       Decimal       @db.Decimal(10, 2)
+  graceDays        Int
+  maxFine          Decimal       @db.Decimal(10, 2)
+  allowRenewal     Boolean       @default(true)
+  allowReservation Boolean       @default(true)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@unique([memberType, branchId])
+  @@index([branchId])
+}
+
+model BookLoan {
+  id           String             @id @default(uuid())
+  copyId       String
+  copy         BookCopy           @relation(fields: [copyId], references: [id], onDelete: Cascade)
+  membershipId String
+  membership   LibraryMembership  @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  issuedBy     String
+  issuer       User               @relation("LoansIssued", fields: [issuedBy], references: [id])
+  issuedAt     DateTime           @default(now())
+  dueAt        DateTime
+  returnedAt   DateTime?
+  status       String             @default("ACTIVE") // ACTIVE, OVERDUE, RETURNED, LOST, DAMAGED
+  renewalCount Int                @default(0)
+  renewals     LoanRenewal[]
+  fines        LibraryFine[]
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@index([copyId])
+  @@index([membershipId])
+  @@index([issuedBy])
+}
+
+model LoanRenewal {
+  id            String   @id @default(uuid())
+  loanId        String
+  loan          BookLoan @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  renewedBy     String
+  renewer       User     @relation("RenewalsCreated", fields: [renewedBy], references: [id])
+  renewedAt     DateTime @default(now())
+  originalDueAt DateTime
+  newDueAt      DateTime
+  createdAt     DateTime @default(now())
+
+  @@index([loanId])
+  @@index([renewedBy])
+}
+
+model BookReservation {
+  id             String            @id @default(uuid())
+  bookId         String
+  book           Book              @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  membershipId   String
+  membership     LibraryMembership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  reservedAt     DateTime          @default(now())
+  status         String            @default("WAITING") // WAITING, READY_FOR_PICKUP, FULFILLED, CANCELLED, EXPIRED
+  pickupDeadline DateTime?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@index([bookId])
+  @@index([membershipId])
+}
+
+model LibraryFine {
+  id           String            @id @default(uuid())
+  loanId       String?
+  loan         BookLoan?         @relation(fields: [loanId], references: [id], onDelete: SetNull)
+  membershipId String
+  membership   LibraryMembership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  amount       Decimal           @db.Decimal(10, 2)
+  currency     String            @default("INR")
+  reason       String            // OVERDUE, LOST, DAMAGED, OTHER
+  status       String            @default("PENDING") // PENDING, PAID, WAIVED, CANCELLED
+  assessedAt   DateTime          @default(now())
+  paidAt       DateTime?
+  waivedAt     DateTime?
+  waivedBy     String?
+  waiverUser   User?             @relation("FinesWaived", fields: [waivedBy], references: [id])
+  waiverReason String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@index([loanId])
+  @@index([membershipId])
+  @@index([waivedBy])
+}
+
+model LibraryInventoryEvent {
+  id          String   @id @default(uuid())
+  copyId      String
+  copy        BookCopy @relation(fields: [copyId], references: [id], onDelete: Cascade)
+  eventType   String   // CONDITION_CHANGE, DAMAGE_REPORT, LOST_REPORT, REPAIR_SENT, REPAIR_RETURNED, WITHDRAWN
+  description String
+  reportedBy  String
+  reporter    User     @relation("InventoryEvents", fields: [reportedBy], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@index([copyId])
+  @@index([reportedBy])
+}
+
+model DigitalResource {
+  id          String   @id @default(uuid())
+  title       String
+  type        String   // EBOOK, JOURNAL, RESEARCH_PAPER, INSTITUTIONAL_REPOSITORY
+  description String?  @db.Text
+  accessUrl   String
+  licenseType String
+  accessLevel String   // PUBLIC, STUDENT, FACULTY, ADMIN
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model LibraryVendor {
+  id            String                     @id @default(uuid())
+  name          String                     @unique
+  contactPerson String?
+  email         String?
+  phone         String?
+  address       String?                    @db.Text
+  requests      BookAcquisitionRequest[]
+  createdAt     DateTime                   @default(now())
+  updatedAt     DateTime                   @updatedAt
+}
+
+model BookAcquisitionRequest {
+  id          String                @id @default(uuid())
+  vendorId    String?
+  vendor      LibraryVendor?        @relation(fields: [vendorId], references: [id])
+  status      String                @default("DRAFT") // DRAFT, SUBMITTED, APPROVED, REJECTED, ORDERED, RECEIVED, CANCELLED
+  requestedBy String
+  requester   User                  @relation("RequestedAcquisitions", fields: [requestedBy], references: [id])
+  approvedBy  String?
+  approver    User?                 @relation("ApprovedAcquisitions", fields: [approvedBy], references: [id])
+  totalCost   Decimal               @db.Decimal(10, 2) @default(0)
+  notes       String?               @db.Text
+  items       BookAcquisitionItem[]
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+
+  @@index([vendorId])
+  @@index([requestedBy])
+  @@index([approvedBy])
+}
+
+model BookAcquisitionItem {
+  id        String                 @id @default(uuid())
+  requestId String
+  request   BookAcquisitionRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  bookId    String
+  book      Book                   @relation(fields: [bookId], references: [id])
+  quantity  Int
+  unitPrice Decimal                @db.Decimal(10, 2)
+  createdAt DateTime               @default(now())
+
+  @@index([requestId])
+  @@index([bookId])
+}
+
+model InventoryAudit {
+  id          String               @id @default(uuid())
+  branchId    String
+  branch      LibraryBranch        @relation(fields: [branchId], references: [id])
+  status      String               @default("DRAFT") // DRAFT, IN_PROGRESS, COMPLETED, CANCELLED
+  conductedBy String
+  conductor   User                 @relation("ConductedAudits", fields: [conductedBy], references: [id])
+  startedAt   DateTime
+  endedAt     DateTime?
+  items       InventoryAuditItem[]
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  @@index([branchId])
+  @@index([conductedBy])
+}
+
+model InventoryAuditItem {
+  id               String         @id @default(uuid())
+  auditId          String
+  audit            InventoryAudit @relation(fields: [auditId], references: [id], onDelete: Cascade)
+  copyId           String
+  copy             BookCopy       @relation(fields: [copyId], references: [id], onDelete: Cascade)
+  scannedAt        DateTime       @default(now())
+  scannedCondition String
+  status           String         // MATCHED, MISPLACED, MISSING
+  notes            String?        @db.Text
+
+  @@index([auditId])
+  @@index([copyId])
+}
+
+model LibraryAudit {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action    String
+  details   String?  @db.Text
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+}
+

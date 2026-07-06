@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     LOG_LEVEL: str = "info"
     DATABASE_URL: str
+    DATABASE_MODE: str = "mysql"
     CORS_ORIGINS: Union[str, List[str]] = []
     SECRET_KEY: str = "supersecretkeycampusgptx2026forlocaldevonly!!!"
     ALGORITHM: str = "HS256"
@@ -18,6 +19,10 @@ class Settings(BaseSettings):
     @field_validator("DATABASE_URL", mode="before")
     @classmethod
     def assemble_db_url(cls, v: str) -> str:
+        import os
+        mode = os.environ.get("DATABASE_MODE", "mysql")
+        if mode == "sqlite_demo":
+            return "sqlite:///c:/Users/DELL/OneDrive/Desktop/CampusGPT/apps/backend/campusgpt.db"
         if isinstance(v, str) and v.startswith("mysql://"):
             return v.replace("mysql://", "mysql+pymysql://", 1)
         return v

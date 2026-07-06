@@ -14,8 +14,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from app.core.config import settings
 from app.models.models import (
-    Base, Role, Permission, User, AcademicYear, Department, Program, Semester, Section, Subject,
-    FacultyProfile, Enrollment, ParentProfile, ParentStudentLink, ParentMessage, ParentNotification,
+    Base, Role, Permission, User, AcademicYear, Department, Program, Semester, Section, Subject, Course,
+    FacultyProfile, Enrollment, ParentProfile, ParentStudentLink, ParentMessage, ParentNotification, AdmissionApplication,
     AttendanceSession, AttendanceRecord, AssignmentDef, StudentAssignment, AssignmentSubmission,
     Exam, ExamSchedule, StudentResult, FeeStructure, FeeComponent, FeeInvoice, InvoiceItem,
     Payment, Receipt, StudentScholarship, Scholarship, UserPermission
@@ -96,19 +96,19 @@ def run_seeder():
 
         prog = db.query(Program).filter(Program.code == "BTECH-CSE-AI").first()
         if not prog:
-            prog = Program(departmentId=dept.id, name="B.Tech CSE-AI", code="BTECH-CSE-AI", durationYears=4)
+            prog = Program(departmentId=dept.id, name="B.Tech CSE-AI", code="BTECH-CSE-AI")
             db.add(prog)
             db.flush()
 
         sem = db.query(Semester).filter(Semester.programId == prog.id, Semester.semesterNumber == 6).first()
         if not sem:
-            sem = Semester(programId=prog.id, semesterNumber=6, academicYearId=ay.id)
+            sem = Semester(programId=prog.id, semesterNumber=6, academicYearId=ay.id, startDate=datetime(2026, 6, 1), endDate=datetime(2026, 12, 31))
             db.add(sem)
             db.flush()
 
         sec = db.query(Section).filter(Section.semesterId == sem.id, Section.name == "A").first()
         if not sec:
-            sec = Section(semesterId=sem.id, name="A", capacity=60)
+            sec = Section(semesterId=sem.id, name="A", capacity=60, departmentId=dept.id, programId=prog.id, academicYearId=ay.id)
             db.add(sec)
             db.flush()
 
@@ -119,6 +119,20 @@ def run_seeder():
         db.add(student_user)
         db.flush()
 
+        # Course
+        course = db.query(Course).filter(Course.code == "CS-AI-DEGC").first()
+        if not course:
+            course = Course(
+                code="CS-AI-DEGC",
+                name="Computer Science & Engineering (AI) Degree Course",
+                credits=160,
+                duration="4 Years",
+                departmentId=dept.id,
+                programId=prog.id
+            )
+            db.add(course)
+            db.flush()
+
         # Subjects
         subject_names = ["Artificial Intelligence", "Machine Learning", "Computer Networks", "Software Engineering"]
         subjects = {}
@@ -126,7 +140,7 @@ def run_seeder():
             code = "CS-" + "".join([word[0] for word in name.split()]).upper() + "-600"
             subj = db.query(Subject).filter(Subject.code == code).first()
             if not subj:
-                subj = Subject(semesterId=sem.id, name=name, code=code, credits=4)
+                subj = Subject(semesterId=sem.id, name=name, code=code, credits=4, departmentId=dept.id, courseId=course.id)
                 db.add(subj)
                 db.flush()
             subjects[name] = subj
@@ -134,7 +148,27 @@ def run_seeder():
         # 4. Student Enrollment
         enroll = db.query(Enrollment).filter(Enrollment.studentId == student_user.id).first()
         if not enroll:
+            app_record = db.query(AdmissionApplication).filter(AdmissionApplication.email == student_user.email).first()
+            if not app_record:
+                app_record = AdmissionApplication(
+                    applicationNumber="APP-2026-AI001",
+                    academicYearId=ay.id,
+                    departmentId=dept.id,
+                    programId=prog.id,
+                    applicantName=student_user.name,
+                    email=student_user.email,
+                    phone="9988776655",
+                    dateOfBirth=datetime(2005, 5, 15),
+                    gender="MALE",
+                    nationality="Indian",
+                    category="General",
+                    quota="General Merit"
+                )
+                db.add(app_record)
+                db.flush()
+
             enroll = Enrollment(
+                applicationId=app_record.id,
                 enrollmentNumber="ENR-2026-AI001",
                 studentId=student_user.id,
                 usn="USN2026AI01",
@@ -206,52 +240,58 @@ def run_seeder():
                 title="Supervised Learning Projects",
                 description="Implement linear and logistic regressions.",
                 facultyId=users["TEACHER"].id,
-                maxMarks=100.0,
-                dueDate=datetime.utcnow() + timedelta(days=5),
-                status="PUBLISHED"
+                dueDate=datetime.utcnow() + timedelta(days=5)
             )
             db.add(ass_def)
             db.flush()
 
-        ass_sub = db.query(StudentAssignment).filter(StudentAssignment.studentId == student_user.id, StudentAssignment.assignmentDefId == ass_def.id).first()
+        ass_sub = db.query(StudentAssignment).filter(StudentAssignment.userId == student_user.id).first()
         if not ass_sub:
             ass_sub = StudentAssignment(
-                studentId=student_user.id,
-                assignmentDefId=ass_def.id,
-                status="SUBMITTED",
-                feedback="Excellent design.",
-                obtainedMarks=92.0
+                userId=student_user.id,
+                subjectId=subjects["Machine Learning"].id,
+                title="Supervised Learning Tasks",
+                description="Implement regression algorithms.",
+                dueDate=datetime.utcnow() + timedelta(days=5),
+                submissionStatus="SUBMITTED"
             )
             db.add(ass_sub)
             db.flush()
 
         # 8. Exam, Schedule & Results
-        exam = db.query(Exam).filter(Exam.name == "CSE-AI Midterm").first()
+        exam = db.query(Exam).filter(Exam.examName == "CSE-AI Midterm").first()
         if not exam:
             exam = Exam(
+                examName="CSE-AI Midterm",
+                examType="MID",
                 academicYearId=ay.id,
+                departmentId=dept.id,
                 programId=prog.id,
-                name="CSE-AI Midterm",
-                examType="MID_TERM",
-                startDate=datetime.utcnow() - timedelta(days=10),
-                endDate=datetime.utcnow() - timedelta(days=5),
-                status="COMPLETED",
-                createdBy=users["MASTER_ADMIN"].id
+                semesterId=sem.id,
+                sectionId=sec.id,
+                subjectId=subjects["Artificial Intelligence"].id,
+                facultyId=users["TEACHER"].id,
+                examDate=datetime.utcnow() - timedelta(days=5),
+                startTime="10:00",
+                endTime="13:00",
+                durationMinutes=180,
+                maxMarks=100.0,
+                passingMarks=40.0,
+                status="COMPLETED"
             )
             db.add(exam)
             db.flush()
 
-        res = db.query(StudentResult).filter(StudentResult.studentId == student_user.id).first()
+        res = db.query(StudentResult).filter(StudentResult.userId == student_user.id).first()
         if not res:
             res = StudentResult(
-                studentId=student_user.id,
-                academicYearId=ay.id,
-                programId=prog.id,
+                userId=student_user.id,
+                subjectId=subjects["Artificial Intelligence"].id,
                 semesterNumber=6,
-                courseId=subjects["Artificial Intelligence"].code,
+                internalMarks=44,
+                externalMarks=50,
                 grade="A+",
-                marksObtained=94.0,
-                status="PUBLISHED"
+                credits=4
             )
             db.add(res)
             db.flush()

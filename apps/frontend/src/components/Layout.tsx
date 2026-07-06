@@ -31,7 +31,8 @@ import {
   Assessment as ResultIcon,
   AppRegistration as AdmissionIcon,
   ReceiptLong as FeeIcon,
-  SupervisorAccount as ParentIcon
+  SupervisorAccount as ParentIcon,
+  LocalLibrary as LibraryIcon
 } from '@mui/icons-material';
 
 const DRAWER_WIDTH = 260;
@@ -109,7 +110,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       { text: 'Exams', icon: <ExamIcon />, path: '/exam-dashboard' },
       { text: 'Results', icon: <ResultIcon />, path: '/result-dashboard' },
       { text: 'Admissions', icon: <AdmissionIcon />, path: '/admission-dashboard' },
-      { text: 'Fees', icon: <FeeIcon />, path: '/fee-dashboard' }
+      { text: 'Fees', icon: <FeeIcon />, path: '/fee-dashboard' },
+      { text: 'Library Portal', icon: <LibraryIcon />, path: '/library-dashboard' }
     );
   } else if (user?.role === 'STUDENT') {
     menuItems.push(
@@ -140,6 +142,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       { text: 'Results', icon: <ResultIcon />, path: '/result-dashboard' },
       { text: 'Admissions', icon: <AdmissionIcon />, path: '/admission-dashboard' },
       { text: 'Fees', icon: <FeeIcon />, path: '/fee-dashboard' }
+    );
+  } else if (user?.role === 'LIBRARIAN') {
+    menuItems.push(
+      { text: 'Overview', icon: <DashboardIcon />, path: '/' },
+      { text: 'Library Portal', icon: <LibraryIcon />, path: '/library-dashboard' }
     );
   } else if (user?.role === 'PARENT') {
     menuItems.push(

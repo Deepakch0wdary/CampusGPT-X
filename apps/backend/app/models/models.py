@@ -132,6 +132,16 @@ class User(Base):
     receivedParentMessages = relationship("ParentMessage", foreign_keys="[ParentMessage.receiverId]", back_populates="receiver", cascade="all, delete-orphan")
     parentAudits = relationship("ParentAudit", back_populates="user", cascade="all, delete-orphan")
 
+    libraryMembership = relationship("LibraryMembership", uselist=False, back_populates="user", cascade="all, delete-orphan")
+    loansIssued = relationship("BookLoan", foreign_keys="[BookLoan.issuedBy]", back_populates="issuer", cascade="all, delete-orphan")
+    renewalsCreated = relationship("LoanRenewal", foreign_keys="[LoanRenewal.renewedBy]", back_populates="renewer", cascade="all, delete-orphan")
+    finesWaived = relationship("LibraryFine", foreign_keys="[LibraryFine.waivedBy]", back_populates="waiverUser", cascade="all, delete-orphan")
+    inventoryEvents = relationship("LibraryInventoryEvent", foreign_keys="[LibraryInventoryEvent.reportedBy]", back_populates="reporter", cascade="all, delete-orphan")
+    acquisitionRequests = relationship("BookAcquisitionRequest", foreign_keys="[BookAcquisitionRequest.requestedBy]", back_populates="requester", cascade="all, delete-orphan")
+    acquisitionApprovals = relationship("BookAcquisitionRequest", foreign_keys="[BookAcquisitionRequest.approvedBy]", back_populates="approver", cascade="all, delete-orphan")
+    inventoryAudits = relationship("InventoryAudit", foreign_keys="[InventoryAudit.conductedBy]", back_populates="conductor", cascade="all, delete-orphan")
+    libraryAudits = relationship("LibraryAudit", back_populates="user", cascade="all, delete-orphan")
+
 class UserProfile(Base):
     __tablename__ = "UserProfile"
     id = Column(String(191), primary_key=True, default=generate_uuid)
@@ -1778,3 +1788,339 @@ class ParentAudit(Base):
 
     parent = relationship("ParentProfile", back_populates="audits")
     user = relationship("User", back_populates="parentAudits")
+
+class LibraryBranch(Base):
+    __tablename__ = "LibraryBranch"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    name = Column(String(191), nullable=False)
+    code = Column(String(191), unique=True, nullable=False)
+    description = Column(Text, nullable=True)
+    location = Column(String(191), nullable=True)
+    contactEmail = Column(String(191), nullable=True)
+    contactPhone = Column(String(191), nullable=True)
+    openingTime = Column(String(191), nullable=True)
+    closingTime = Column(String(191), nullable=True)
+    active = Column(Boolean, default=True, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    copies = relationship("BookCopy", back_populates="branch", cascade="all, delete-orphan")
+    memberships = relationship("LibraryMembership", back_populates="branch")
+    policies = relationship("LibraryPolicy", back_populates="branch", cascade="all, delete-orphan")
+    audits = relationship("InventoryAudit", back_populates="branch")
+
+class Author(Base):
+    __tablename__ = "Author"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    name = Column(String(191), unique=True, nullable=False)
+    biography = Column(Text, nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    bookAuthors = relationship("BookAuthor", back_populates="author", cascade="all, delete-orphan")
+
+class Publisher(Base):
+    __tablename__ = "Publisher"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    name = Column(String(191), unique=True, nullable=False)
+    address = Column(Text, nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    books = relationship("Book", back_populates="publisher")
+
+class BookCategory(Base):
+    __tablename__ = "BookCategory"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    name = Column(String(191), unique=True, nullable=False)
+    code = Column(String(191), unique=True, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    books = relationship("Book", back_populates="category")
+
+class Book(Base):
+    __tablename__ = "Book"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    isbn10 = Column(String(191), nullable=True)
+    isbn13 = Column(String(191), unique=True, nullable=False)
+    title = Column(String(191), nullable=False)
+    subtitle = Column(String(191), nullable=True)
+    description = Column(Text, nullable=True)
+    edition = Column(String(191), nullable=True)
+    publicationYear = Column(Integer, nullable=False)
+    language = Column(String(191), nullable=False)
+    pageCount = Column(Integer, nullable=False)
+    coverImageUrl = Column(String(191), nullable=True)
+    publisherId = Column(String(191), ForeignKey("Publisher.id"), nullable=False)
+    categoryId = Column(String(191), ForeignKey("BookCategory.id"), nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    publisher = relationship("Publisher", back_populates="books")
+    category = relationship("BookCategory", back_populates="books")
+    bookAuthors = relationship("BookAuthor", back_populates="book", cascade="all, delete-orphan")
+    tags = relationship("BookTag", back_populates="book", cascade="all, delete-orphan")
+    copies = relationship("BookCopy", back_populates="book", cascade="all, delete-orphan")
+    reservations = relationship("BookReservation", back_populates="book", cascade="all, delete-orphan")
+    acquisitionItems = relationship("BookAcquisitionItem", back_populates="book")
+
+class BookAuthor(Base):
+    __tablename__ = "BookAuthor"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    bookId = Column(String(191), ForeignKey("Book.id", ondelete="CASCADE"), nullable=False)
+    authorId = Column(String(191), ForeignKey("Author.id", ondelete="CASCADE"), nullable=False)
+
+    book = relationship("Book", back_populates="bookAuthors")
+    author = relationship("Author", back_populates="bookAuthors")
+
+    __table_args__ = (UniqueConstraint("bookId", "authorId", name="BookAuthor_bookId_authorId_key"),)
+
+class BookTag(Base):
+    __tablename__ = "BookTag"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    bookId = Column(String(191), ForeignKey("Book.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String(191), nullable=False)
+
+    book = relationship("Book", back_populates="tags")
+
+    __table_args__ = (UniqueConstraint("bookId", "name", name="BookTag_bookId_name_key"),)
+
+class BookCopy(Base):
+    __tablename__ = "BookCopy"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    bookId = Column(String(191), ForeignKey("Book.id", ondelete="CASCADE"), nullable=False)
+    branchId = Column(String(191), ForeignKey("LibraryBranch.id"), nullable=False)
+    accessionNumber = Column(String(191), unique=True, nullable=False)
+    barcode = Column(String(191), unique=True, nullable=False)
+    qrCode = Column(String(191), nullable=True)
+    shelfLocation = Column(String(191), nullable=True)
+    rackNumber = Column(String(191), nullable=True)
+    acquisitionDate = Column(DateTime, nullable=False)
+    acquisitionPrice = Column(Numeric(10, 2), nullable=False)
+    source = Column(String(191), nullable=True)
+    condition = Column(String(191), default="GOOD", nullable=False)
+    status = Column(String(191), default="AVAILABLE", nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    book = relationship("Book", back_populates="copies")
+    branch = relationship("LibraryBranch", back_populates="copies")
+    loans = relationship("BookLoan", back_populates="copy", cascade="all, delete-orphan")
+    events = relationship("LibraryInventoryEvent", back_populates="copy", cascade="all, delete-orphan")
+    auditItems = relationship("InventoryAuditItem", back_populates="copy", cascade="all, delete-orphan")
+
+class LibraryMembership(Base):
+    __tablename__ = "LibraryMembership"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    userId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), unique=True, nullable=False)
+    membershipNumber = Column(String(191), unique=True, nullable=False)
+    memberType = Column(String(191), nullable=False) # STUDENT, FACULTY, STAFF, ALUMNI, OTHER
+    branchId = Column(String(191), ForeignKey("LibraryBranch.id"), nullable=True)
+    activatedAt = Column(DateTime, nullable=False)
+    expiresAt = Column(DateTime, nullable=False)
+    status = Column(String(191), default="ACTIVE", nullable=False) # ACTIVE, SUSPENDED, EXPIRED, BLOCKED
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = relationship("User", back_populates="libraryMembership")
+    branch = relationship("LibraryBranch", back_populates="memberships")
+    loans = relationship("BookLoan", back_populates="membership", cascade="all, delete-orphan")
+    reservations = relationship("BookReservation", back_populates="membership", cascade="all, delete-orphan")
+    fines = relationship("LibraryFine", back_populates="membership", cascade="all, delete-orphan")
+
+class LibraryPolicy(Base):
+    __tablename__ = "LibraryPolicy"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    memberType = Column(String(191), nullable=False) # STUDENT, FACULTY, STAFF, ALUMNI, OTHER
+    branchId = Column(String(191), ForeignKey("LibraryBranch.id", ondelete="CASCADE"), nullable=False)
+    maxBooks = Column(Integer, nullable=False)
+    loanDays = Column(Integer, nullable=False)
+    renewalLimit = Column(Integer, nullable=False)
+    reservationLimit = Column(Integer, nullable=False)
+    finePerDay = Column(Numeric(10, 2), nullable=False)
+    graceDays = Column(Integer, nullable=False)
+    maxFine = Column(Numeric(10, 2), nullable=False)
+    allowRenewal = Column(Boolean, default=True, nullable=False)
+    allowReservation = Column(Boolean, default=True, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    branch = relationship("LibraryBranch", back_populates="policies")
+
+    __table_args__ = (UniqueConstraint("memberType", "branchId", name="LibraryPolicy_memberType_branchId_key"),)
+
+class BookLoan(Base):
+    __tablename__ = "BookLoan"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    copyId = Column(String(191), ForeignKey("BookCopy.id", ondelete="CASCADE"), nullable=False)
+    membershipId = Column(String(191), ForeignKey("LibraryMembership.id", ondelete="CASCADE"), nullable=False)
+    issuedBy = Column(String(191), ForeignKey("User.id"), nullable=False)
+    issuedAt = Column(DateTime, default=datetime.utcnow, nullable=False)
+    dueAt = Column(DateTime, nullable=False)
+    returnedAt = Column(DateTime, nullable=True)
+    status = Column(String(191), default="ACTIVE", nullable=False) # ACTIVE, OVERDUE, RETURNED, LOST, DAMAGED
+    renewalCount = Column(Integer, default=0, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    copy = relationship("BookCopy", back_populates="loans")
+    membership = relationship("LibraryMembership", back_populates="loans")
+    issuer = relationship("User", foreign_keys=[issuedBy], back_populates="loansIssued")
+    renewals = relationship("LoanRenewal", back_populates="loan", cascade="all, delete-orphan")
+    fines = relationship("LibraryFine", back_populates="loan", cascade="all, delete-orphan")
+
+class LoanRenewal(Base):
+    __tablename__ = "LoanRenewal"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    loanId = Column(String(191), ForeignKey("BookLoan.id", ondelete="CASCADE"), nullable=False)
+    renewedBy = Column(String(191), ForeignKey("User.id"), nullable=False)
+    renewedAt = Column(DateTime, default=datetime.utcnow, nullable=False)
+    originalDueAt = Column(DateTime, nullable=False)
+    newDueAt = Column(DateTime, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    loan = relationship("BookLoan", back_populates="renewals")
+    renewer = relationship("User", foreign_keys=[renewedBy], back_populates="renewalsCreated")
+
+class BookReservation(Base):
+    __tablename__ = "BookReservation"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    bookId = Column(String(191), ForeignKey("Book.id", ondelete="CASCADE"), nullable=False)
+    membershipId = Column(String(191), ForeignKey("LibraryMembership.id", ondelete="CASCADE"), nullable=False)
+    reservedAt = Column(DateTime, default=datetime.utcnow, nullable=False)
+    status = Column(String(191), default="WAITING", nullable=False) # WAITING, READY_FOR_PICKUP, FULFILLED, CANCELLED, EXPIRED
+    pickupDeadline = Column(DateTime, nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    book = relationship("Book", back_populates="reservations")
+    membership = relationship("LibraryMembership", back_populates="reservations")
+
+class LibraryFine(Base):
+    __tablename__ = "LibraryFine"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    loanId = Column(String(191), ForeignKey("BookLoan.id", ondelete="SET NULL"), nullable=True)
+    membershipId = Column(String(191), ForeignKey("LibraryMembership.id", ondelete="CASCADE"), nullable=False)
+    amount = Column(Numeric(10, 2), nullable=False)
+    currency = Column(String(191), default="INR", nullable=False)
+    reason = Column(String(191), nullable=False) # OVERDUE, LOST, DAMAGED, OTHER
+    status = Column(String(191), default="PENDING", nullable=False) # PENDING, PAID, WAIVED, CANCELLED
+    assessedAt = Column(DateTime, default=datetime.utcnow, nullable=False)
+    paidAt = Column(DateTime, nullable=True)
+    waivedAt = Column(DateTime, nullable=True)
+    waivedBy = Column(String(191), ForeignKey("User.id"), nullable=True)
+    waiverReason = Column(Text, nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    loan = relationship("BookLoan", back_populates="fines")
+    membership = relationship("LibraryMembership", back_populates="fines")
+    waiverUser = relationship("User", foreign_keys=[waivedBy], back_populates="finesWaived")
+
+class LibraryInventoryEvent(Base):
+    __tablename__ = "LibraryInventoryEvent"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    copyId = Column(String(191), ForeignKey("BookCopy.id", ondelete="CASCADE"), nullable=False)
+    eventType = Column(String(191), nullable=False) # CONDITION_CHANGE, DAMAGE_REPORT, LOST_REPORT, REPAIR_SENT, REPAIR_RETURNED, WITHDRAWN
+    description = Column(Text, nullable=False)
+    reportedBy = Column(String(191), ForeignKey("User.id"), nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    copy = relationship("BookCopy", back_populates="events")
+    reporter = relationship("User", foreign_keys=[reportedBy], back_populates="inventoryEvents")
+
+class DigitalResource(Base):
+    __tablename__ = "DigitalResource"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    title = Column(String(191), nullable=False)
+    type = Column(String(191), nullable=False) # EBOOK, JOURNAL, RESEARCH_PAPER, INSTITUTIONAL_REPOSITORY
+    description = Column(Text, nullable=True)
+    accessUrl = Column(String(191), nullable=False)
+    licenseType = Column(String(191), nullable=False)
+    accessLevel = Column(String(191), nullable=False) # PUBLIC, STUDENT, FACULTY, ADMIN
+    active = Column(Boolean, default=True, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class LibraryVendor(Base):
+    __tablename__ = "LibraryVendor"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    name = Column(String(191), unique=True, nullable=False)
+    contactPerson = Column(String(191), nullable=True)
+    email = Column(String(191), nullable=True)
+    phone = Column(String(191), nullable=True)
+    address = Column(Text, nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    requests = relationship("BookAcquisitionRequest", back_populates="vendor")
+
+class BookAcquisitionRequest(Base):
+    __tablename__ = "BookAcquisitionRequest"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    vendorId = Column(String(191), ForeignKey("LibraryVendor.id"), nullable=True)
+    status = Column(String(191), default="DRAFT", nullable=False) # DRAFT, SUBMITTED, APPROVED, REJECTED, ORDERED, RECEIVED, CANCELLED
+    requestedBy = Column(String(191), ForeignKey("User.id"), nullable=False)
+    approvedBy = Column(String(191), ForeignKey("User.id"), nullable=True)
+    totalCost = Column(Numeric(10, 2), default=0, nullable=False)
+    notes = Column(Text, nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    vendor = relationship("LibraryVendor", back_populates="requests")
+    requester = relationship("User", foreign_keys=[requestedBy], back_populates="acquisitionRequests")
+    approver = relationship("User", foreign_keys=[approvedBy], back_populates="acquisitionApprovals")
+    items = relationship("BookAcquisitionItem", back_populates="request", cascade="all, delete-orphan")
+
+class BookAcquisitionItem(Base):
+    __tablename__ = "BookAcquisitionItem"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    requestId = Column(String(191), ForeignKey("BookAcquisitionRequest.id", ondelete="CASCADE"), nullable=False)
+    bookId = Column(String(191), ForeignKey("Book.id"), nullable=False)
+    quantity = Column(Integer, nullable=False)
+    unitPrice = Column(Numeric(10, 2), nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    request = relationship("BookAcquisitionRequest", back_populates="items")
+    book = relationship("Book", back_populates="acquisitionItems")
+
+class InventoryAudit(Base):
+    __tablename__ = "InventoryAudit"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    branchId = Column(String(191), ForeignKey("LibraryBranch.id"), nullable=False)
+    status = Column(String(191), default="DRAFT", nullable=False) # DRAFT, IN_PROGRESS, COMPLETED, CANCELLED
+    conductedBy = Column(String(191), ForeignKey("User.id"), nullable=False)
+    startedAt = Column(DateTime, nullable=False)
+    endedAt = Column(DateTime, nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    branch = relationship("LibraryBranch", back_populates="audits")
+    conductor = relationship("User", foreign_keys=[conductedBy], back_populates="inventoryAudits")
+    items = relationship("InventoryAuditItem", back_populates="audit", cascade="all, delete-orphan")
+
+class InventoryAuditItem(Base):
+    __tablename__ = "InventoryAuditItem"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    auditId = Column(String(191), ForeignKey("InventoryAudit.id", ondelete="CASCADE"), nullable=False)
+    copyId = Column(String(191), ForeignKey("BookCopy.id", ondelete="CASCADE"), nullable=False)
+    scannedAt = Column(DateTime, default=datetime.utcnow, nullable=False)
+    scannedCondition = Column(String(191), nullable=False)
+    status = Column(String(191), nullable=False) # MATCHED, MISPLACED, MISSING
+    notes = Column(Text, nullable=True)
+
+    audit = relationship("InventoryAudit", back_populates="items")
+    copy = relationship("BookCopy", back_populates="auditItems")
+
+class LibraryAudit(Base):
+    __tablename__ = "LibraryAudit"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    userId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    action = Column(String(191), nullable=False)
+    details = Column(Text, nullable=True)
+    ipAddress = Column(String(191), nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="libraryAudits")
+
