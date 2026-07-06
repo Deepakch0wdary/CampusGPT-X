@@ -26,6 +26,7 @@ import ExamDashboard from './pages/ExamDashboard';
 import ResultDashboard from './pages/ResultDashboard';
 import AdmissionDashboard from './pages/AdmissionDashboard';
 import FeeDashboard from './pages/FeeDashboard';
+import ParentDashboard from './pages/ParentDashboard';
 
 // Helper validators for local session tracking
 const isAuthenticated = () => !!localStorage.getItem('access_token');
@@ -170,6 +171,12 @@ const App: React.FC = () => {
             <Route path="/fee-dashboard" element={
               <PrivateRoute>
                 <FeeDashboard />
+              </PrivateRoute>
+            } />
+
+            <Route path="/parent-dashboard" element={
+              <PrivateRoute>
+                <ParentDashboard />
               </PrivateRoute>
             } />
 

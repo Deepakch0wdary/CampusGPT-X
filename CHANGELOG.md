@@ -4,6 +4,24 @@ All notable changes to the **CampusGPT X** system are logged in this file.
 
 ---
 
+## [15.0-Complete] - 2026-07-06
+### Added
+* Enterprise-Grade Parent Portal System including:
+  * **Parent Accounts**: Unified profiles (`ParentProfile`) representing father, mother, or guardian configurations.
+  * **Student Linkages**: Linked association logic supporting one parent to multiple students (`ParentStudentLink`).
+  * **Telemetry Dashboards**: Parent views of daily/monthly class attendance, assignments, and billing balances.
+  * **Direct Messaging Feed**: Secure Direct Messaging database engine (`ParentMessage`) between parent and faculty.
+  * **Notifications Center**: Active notice/alarm alerts inbox (`ParentNotification`) mapping event triggers.
+  * **Audit Trails**: Security audits log (`ParentAudit`) tracking parent telemetry queries.
+* Premium Material UI `ParentDashboard.tsx` console with student selector, grade cards, messaging boards, and alert cards.
+
+## [14.0-Complete] - 2026-07-06
+### Added
+* Enterprise-Grade Admission & Fee Management System including:
+  * **Admissions Workflow**: Draft creation, documents uploading, review status histories (`AdmissionApplication`), and automated user account enrollment.
+  * **Billing & Fee Invoicing**: Configurability structures, net balance calculators with scholarship overrides, and idempotent payment confirmed receipts (`FeeInvoice`, `Payment`, `Receipt`).
+* High-fidelity page layouts `AdmissionDashboard.tsx` and `FeeDashboard.tsx`.
+
 ## [13.0-Complete] - 2026-07-02
 ### Added
 * Enterprise-Grade Result Management System including:

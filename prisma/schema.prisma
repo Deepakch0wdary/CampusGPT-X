@@ -85,6 +85,11 @@ model User {
   revaluationApproved          RevaluationRequest[]     @relation("FacultyChecker")
   meritList                    MeritList[]
   resultAudits                 ResultAudit[]
+  parentProfile                ParentProfile?
+  parentLinks                  ParentStudentLink[]
+  sentParentMessages           ParentMessage[]          @relation("ParentSent")
+  receivedParentMessages       ParentMessage[]          @relation("ParentReceived")
+  parentAudits                 ParentAudit[]
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
 
@@ -1595,4 +1600,83 @@ model FinancialAudit {
   previousData String?  @db.Text
   newData      String?  @db.Text
   createdAt    DateTime @default(now())
+}
+
+model ParentProfile {
+  id               String              @id @default(uuid())
+  userId           String              @unique
+  user             User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fatherName       String?
+  motherName       String?
+  guardianName     String?
+  relationshipType String              @default("GUARDIAN")
+  occupation       String?
+  phoneNumber      String
+  address          String?             @db.Text
+  studentLinks     ParentStudentLink[]
+  notifications    ParentNotification[]
+  audits           ParentAudit[]
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+}
+
+model ParentStudentLink {
+  id                 String        @id @default(uuid())
+  parentId           String
+  parent             ParentProfile @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  studentId          String
+  student            User          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  relationship       String
+  isPrimaryContact   Boolean       @default(true)
+  createdAt          DateTime      @default(now())
+
+  @@unique([parentId, studentId])
+  @@index([parentId])
+  @@index([studentId])
+}
+
+model ParentMessage {
+  id         String    @id @default(uuid())
+  senderId   String
+  sender     User      @relation("ParentSent", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId String
+  receiver   User      @relation("ParentReceived", fields: [receiverId], references: [id], onDelete: Cascade)
+  content    String    @db.Text
+  isRead     Boolean   @default(false)
+  readAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([createdAt])
+}
+
+model ParentNotification {
+  id        String        @id @default(uuid())
+  parentId  String
+  parent    ParentProfile @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  title     String
+  message   String        @db.Text
+  category  String
+  isRead    Boolean       @default(false)
+  createdAt DateTime      @default(now())
+
+  @@index([parentId])
+  @@index([createdAt])
+}
+
+model ParentAudit {
+  id        String         @id @default(uuid())
+  parentId  String?
+  parent    ParentProfile? @relation(fields: [parentId], references: [id], onDelete: SetNull)
+  userId    String
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action    String
+  details   String?        @db.Text
+  ipAddress String?
+  createdAt DateTime       @default(now())
+
+  @@index([parentId])
+  @@index([userId])
+  @@index([createdAt])
 }

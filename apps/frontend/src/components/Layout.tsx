@@ -30,7 +30,8 @@ import {
   AssignmentTurnedIn as ExamIcon,
   Assessment as ResultIcon,
   AppRegistration as AdmissionIcon,
-  ReceiptLong as FeeIcon
+  ReceiptLong as FeeIcon,
+  SupervisorAccount as ParentIcon
 } from '@mui/icons-material';
 
 const DRAWER_WIDTH = 260;
@@ -139,6 +140,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       { text: 'Results', icon: <ResultIcon />, path: '/result-dashboard' },
       { text: 'Admissions', icon: <AdmissionIcon />, path: '/admission-dashboard' },
       { text: 'Fees', icon: <FeeIcon />, path: '/fee-dashboard' }
+    );
+  } else if (user?.role === 'PARENT') {
+    menuItems.push(
+      { text: 'Overview', icon: <DashboardIcon />, path: '/' },
+      { text: 'Parent Portal', icon: <ParentIcon />, path: '/parent-dashboard' }
     );
   } else {
     // Default fallback menu

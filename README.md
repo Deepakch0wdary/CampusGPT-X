@@ -182,4 +182,5 @@ For detailed guides and deep dives:
 * [assignment_management.md](file:///C:/Users/DELL/.gemini/antigravity-ide/brain/6814b530-b666-4f74-bfb2-40f328843fb5/assignment_management.md) — Assignment publishing, uploads, evaluations, and grading workflows.
 * [examination_management.md](file:///C:/Users/DELL/.gemini/antigravity-ide/brain/6814b530-b666-4f74-bfb2-40f328843fb5/examination_management.md) — Exam schema constraints, seat allocations, admit cards, and approvals.
 * [result_management.md](file:///C:/Users/DELL/.gemini/antigravity-ide/brain/6814b530-b666-4f74-bfb2-40f328843fb5/result_management.md) — Result schemes, GPAs, transcripts, and revaluations.
+* [parent_portal.md](file:///C:/Users/DELL/.gemini/antigravity-ide/brain/6814b530-b666-4f74-bfb2-40f328843fb5/parent_portal.md) — Parent profile mappings, linked student telemetry, and secure messaging channels.
 

@@ -212,3 +212,64 @@ Every endpoint returns a unified JSON envelope:
 #### Rankings & Merit
 * `GET /api/v1/results/merit-list` - Compiles rank lists by semester.
 * `GET /api/v1/results/analytics` - Compiles departmental analytics records.
+
+---
+
+### 13. Admission & Fee Management Module (New in Day 14)
+
+#### Admissions
+* `POST /api/v1/admissions` - Create a draft application.
+* `GET /api/v1/admissions` - Search & filter applications.
+* `GET /api/v1/admissions/{id}` - Detailed applicant card.
+* `PUT /api/v1/admissions/{id}` - Update application draft.
+* `POST /api/v1/admissions/{id}/submit` - Submit application.
+* `POST /api/v1/admissions/{id}/review` - Officer reviews documents.
+* `POST /api/v1/admissions/{id}/approve` - Approve application.
+* `POST /api/v1/admissions/{id}/reject` - Reject application.
+* `POST /api/v1/admissions/{id}/waitlist` - Waitlist application.
+* `POST /api/v1/admissions/{id}/documents` - Upload document metadata.
+* `GET /api/v1/admissions/{id}/documents` - List documents.
+* `POST /api/v1/admissions/admission-documents/{id}/verify` - Mark document as verified.
+* `POST /api/v1/admissions/admission-documents/{id}/reject` - Mark document as rejected.
+* `GET /api/v1/admissions/admission-analytics` - Admissions analytics counts.
+
+#### Student Enrollments
+* `POST /api/v1/enrollments` - Enroll approved applicant (idempotent rollNumber generation).
+* `GET /api/v1/enrollments` - List active enrollments.
+* `GET /api/v1/enrollments/{id}` - View enrollment details.
+
+#### Fees, Invoices & Payments
+* `POST /api/v1/fee-structures` - Configure program fee structures.
+* `GET /api/v1/fee-structures` - List active structures.
+* `POST /api/v1/invoices` - Generate invoices (auto-deduct scholarships/discounts).
+* `GET /api/v1/invoices` - List student invoices.
+* `POST /api/v1/payments` - Initiate payments (idempotency key protection).
+* `POST /api/v1/payments/{id}/confirm` - Atomically confirms payment and updates invoice balances.
+* `GET /api/v1/receipts` - List payment receipts.
+* `GET /api/v1/receipts/verify/{token}` - Secure token verification check.
+* `POST /api/v1/scholarships` - Create scholarship grants.
+* `POST /api/v1/scholarship-applications` - Student applies for scholarship.
+* `POST /api/v1/scholarship-applications/{id}/review` - Approve or reject scholarship awards.
+* `GET /api/v1/fee-analytics` - Invoiced vs collected metrics.
+
+---
+
+### 14. Parent Portal Module (New in Day 15)
+
+#### Profile & Linking
+* `POST /api/v1/parents` - Create parent profile and login account (Admin only).
+* `POST /api/v1/parents/link` - Link parent to student user (Admin only).
+* `GET /api/v1/parents/students` - List linked student cards.
+
+#### Student Telemetry
+* `GET /api/v1/parents/students/{studentId}/attendance` - Access daily/monthly student attendance.
+* `GET /api/v1/parents/students/{studentId}/results` - Access grade cards, transcripts, SGPA/CGPA.
+* `GET /api/v1/parents/students/{studentId}/assignments` - Access pending assignments and Late/On-Time statuses.
+* `GET /api/v1/parents/students/{studentId}/fees` - Access outstanding bill balances, invoices, and scholarship stackings.
+
+#### Secure Communication & Alerts
+* `GET /api/v1/parents/messages` - Direct messages history thread (Faculty, Mentors, Admins).
+* `POST /api/v1/parents/messages` - Send direct message.
+* `GET /api/v1/parents/notifications` - Alarms and notifications center.
+* `POST /api/v1/parents/notifications/{id}/read` - Mark notification as read.
+

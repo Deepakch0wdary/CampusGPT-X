@@ -48,6 +48,8 @@ CampusGPT X is built as a high-performance monorepo:
    * Day 11 registers the Assignment Management endpoint handler in **`assignments.py`** to handle CRUD, student uploads, resubmissions, and grades.
    * Day 12 registers the Examination Management endpoint handler in **`exams.py`** to handle CRUD, scheduling conflict check routines, and seat allocation parameters.
    * Day 13 registers the Result Management endpoint handler in **`results.py`** to handle marks calculation, CGPA tracking, revaluations, and merit listings.
+   * Day 14 registers the Admissions & Fees endpoint handlers in **`admissions.py`** and **`fees.py`** to manage applicant drafting, documents verify statuses, net decimal invoices, and payments.
+   * Day 15 registers the Parent Portal endpoint handlers in **`parents.py`** to manage multi-student linkages, messaging feeds, and notifications.
 
 3. **`prisma`**:
    * Relational database schema manager.

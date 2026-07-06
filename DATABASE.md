@@ -142,3 +142,19 @@ This document describes the database design, tables, relations, and optimization
 * **Assignment Indexes**: Combo unique index on `[assignmentId, studentId]` in `AssignmentSubmission` speeds up student status lookups. Unique index on `AssignmentGrade.submissionId` for fast grading lookups. Index on `Assignment.dueDate` for fast sorting of upcoming deadlines.
 * **Exam Indexes**: Unique index on `HallTicket.hallTicketNumber` for rapid admit check verification. Unique index on `[blockName, roomNumber, benchNumber, seatNumber]` in `SeatAllocation` ensures seat duplication prevention. Index on `Exam.examDate` speeds up overlap checking routines.
 * **Result Indexes**: Combo unique index on `[studentId, academicYearId, semesterNumber]` speeds up student grade lookups. Unique index on `[resultId, subjectId]` speeds up details search. Unique index on `Transcript.qrCodeValue` for rapid validation checking. Index on `Result.cgpa` speeds up ranking sorts.
+
+---
+
+## 👨‍👩‍👧 Parent Portal Cascades & Indices
+
+### Cascade Rules
+- Deleting a parent `User` cascades to delete their `ParentProfile`.
+- Deleting a `ParentProfile` cascades to clear all corresponding `ParentStudentLink`, `ParentNotification`, and `ParentAudit` records.
+- Deleting a `User` student cascades to clear all linked `ParentStudentLink` entries.
+
+### Indices
+- Unique index on `ParentProfile.userId` for fast profile matching.
+- Combo unique index on `[parentId, studentId]` in `ParentStudentLink` ensures no duplicate linking.
+- Index on `ParentMessage.senderId` and `ParentMessage.receiverId` for speedier message thread queries.
+- Index on `ParentNotification.parentId` and `ParentNotification.createdAt` for fast notifications display.
+

@@ -126,6 +126,12 @@ class User(Base):
     meritList = relationship("MeritList", back_populates="student", cascade="all, delete-orphan")
     resultAudits = relationship("ResultAudit", back_populates="user", cascade="all, delete-orphan")
 
+    parentProfile = relationship("ParentProfile", uselist=False, back_populates="user", cascade="all, delete-orphan")
+    parentLinks = relationship("ParentStudentLink", back_populates="student", cascade="all, delete-orphan")
+    sentParentMessages = relationship("ParentMessage", foreign_keys="[ParentMessage.senderId]", back_populates="sender", cascade="all, delete-orphan")
+    receivedParentMessages = relationship("ParentMessage", foreign_keys="[ParentMessage.receiverId]", back_populates="receiver", cascade="all, delete-orphan")
+    parentAudits = relationship("ParentAudit", back_populates="user", cascade="all, delete-orphan")
+
 class UserProfile(Base):
     __tablename__ = "UserProfile"
     id = Column(String(191), primary_key=True, default=generate_uuid)
@@ -1698,3 +1704,77 @@ class FinancialAudit(Base):
     previousData = Column(Text, nullable=True)
     newData = Column(Text, nullable=True)
     createdAt = Column(DateTime, default=datetime.utcnow)
+
+class ParentProfile(Base):
+    __tablename__ = "ParentProfile"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    userId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), unique=True, nullable=False)
+    fatherName = Column(String(191), nullable=True)
+    motherName = Column(String(191), nullable=True)
+    guardianName = Column(String(191), nullable=True)
+    relationshipType = Column(String(191), default="GUARDIAN", nullable=False)
+    occupation = Column(String(191), nullable=True)
+    phoneNumber = Column(String(191), nullable=False)
+    address = Column(Text, nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = relationship("User", back_populates="parentProfile")
+    studentLinks = relationship("ParentStudentLink", back_populates="parent", cascade="all, delete-orphan")
+    notifications = relationship("ParentNotification", back_populates="parent", cascade="all, delete-orphan")
+    audits = relationship("ParentAudit", back_populates="parent", cascade="all, delete-orphan")
+
+class ParentStudentLink(Base):
+    __tablename__ = "ParentStudentLink"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    parentId = Column(String(191), ForeignKey("ParentProfile.id", ondelete="CASCADE"), nullable=False)
+    studentId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+
+    parent = relationship("ParentProfile", back_populates="studentLinks")
+    student = relationship("User", back_populates="parentLinks")
+
+    relationship = Column(String(191), nullable=False)
+    isPrimaryContact = Column(Boolean, default=True, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint("parentId", "studentId", name="uix_parent_student"),
+    )
+
+class ParentMessage(Base):
+    __tablename__ = "ParentMessage"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    senderId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    receiverId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    content = Column(Text, nullable=False)
+    isRead = Column(Boolean, default=False, nullable=False)
+    readAt = Column(DateTime, nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    sender = relationship("User", foreign_keys=[senderId], back_populates="sentParentMessages")
+    receiver = relationship("User", foreign_keys=[receiverId], back_populates="receivedParentMessages")
+
+class ParentNotification(Base):
+    __tablename__ = "ParentNotification"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    parentId = Column(String(191), ForeignKey("ParentProfile.id", ondelete="CASCADE"), nullable=False)
+    title = Column(String(191), nullable=False)
+    message = Column(Text, nullable=False)
+    category = Column(String(191), nullable=False)
+    isRead = Column(Boolean, default=False, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    parent = relationship("ParentProfile", back_populates="notifications")
+
+class ParentAudit(Base):
+    __tablename__ = "ParentAudit"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    parentId = Column(String(191), ForeignKey("ParentProfile.id", ondelete="SET NULL"), nullable=True)
+    userId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    action = Column(String(191), nullable=False)
+    details = Column(Text, nullable=True)
+    ipAddress = Column(String(191), nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    parent = relationship("ParentProfile", back_populates="audits")
+    user = relationship("User", back_populates="parentAudits")
