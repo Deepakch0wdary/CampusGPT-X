@@ -12,6 +12,7 @@ if str(backend_root) not in sys.path:
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from app.core.security import get_password_hash
 from app.core.config import settings
 from app.models.models import (
     Base, Role, Permission, User, AcademicYear, Department, Program, Semester, Section, Subject, Course,
@@ -70,7 +71,7 @@ def run_seeder():
                 user = User(
                     email=email,
                     username=username,
-                    passwordHash="PBKDF2_INSECURE_MOCK",
+                    passwordHash=get_password_hash("password"),
                     name=name,
                     roleId=roles[role_name].id,
                     status="ACTIVE",

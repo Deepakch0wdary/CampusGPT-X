@@ -30,8 +30,42 @@ import ParentDashboard from './pages/ParentDashboard';
 import LibraryDashboard from './pages/LibraryDashboard';
 import HostelDashboard from './pages/HostelDashboard';
 
-// Helper validators for local session tracking
-const isAuthenticated = () => !!localStorage.getItem('access_token');
+// Intercept all API calls to catch 401 Unauthorized errors and clear stale sessions
+const originalFetch = window.fetch;
+window.fetch = async (...args) => {
+  const response = await originalFetch(...args);
+  if (response.status === 401) {
+    const hasToken = !!localStorage.getItem('access_token');
+    const isLoginRequest = typeof args[0] === 'string' && args[0].includes('/api/v1/auth/login');
+    if (hasToken && !isLoginRequest) {
+      localStorage.clear();
+      window.dispatchEvent(new Event('storage'));
+      window.location.href = '/login';
+    }
+  }
+  return response;
+};
+
+// Helper validators for local session tracking with JWT expiration check
+const isAuthenticated = () => {
+  const token = localStorage.getItem('access_token');
+  if (!token) return false;
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return false;
+    // Decode base64 payload safely using atob
+    const payload = JSON.parse(atob(parts[1]));
+    const now = Math.floor(Date.now() / 1000);
+    if (payload.exp && payload.exp < now) {
+      localStorage.clear();
+      return false;
+    }
+    return true;
+  } catch (e) {
+    localStorage.clear();
+    return false;
+  }
+};
 
 const isMasterAdmin = () => {
   const userStr = localStorage.getItem('user');

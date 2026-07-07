@@ -237,6 +237,18 @@ def create_user(payload: UserCreateRequest, current_user: User = Depends(get_cur
         extra_compat=user_data
     )
 
+@router.get("/roles", dependencies=[Depends(PermissionChecker("users:read"))])
+def list_roles(db: Session = Depends(get_db)):
+    """Retrieves all defined roles within the RBAC system."""
+    roles = db.query(Role).all()
+    roles_data = [{"id": r.id, "name": r.name, "description": r.description} for r in roles]
+    return make_response(
+        success=True,
+        message="Roles retrieved successfully.",
+        data={"roles": roles_data},
+        extra_compat={"roles": roles_data}
+    )
+
 @router.get("/{id}", dependencies=[Depends(PermissionChecker("users:read"))])
 def get_user(id: str, db: Session = Depends(get_db)):
     """Retrieves full profile data, designation, and direct permissions of a user."""
@@ -293,11 +305,17 @@ def update_user(id: str, payload: UserUpdateRequest, current_user: User = Depend
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already mapped to another user.")
 
     # Master Admin protection
-    if user.role.name == "MASTER_ADMIN" and payload.email != user.email:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Modifying email profiles on the MASTER_ADMIN is prohibited."
-        )
+    if user.role.name == "MASTER_ADMIN":
+        if current_user.id != user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="The MASTER_ADMIN account cannot be modified by another user."
+            )
+        if payload.email != user.email:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Modifying email profiles on the MASTER_ADMIN is prohibited."
+            )
 
     # Map core properties
     user.name = payload.name
