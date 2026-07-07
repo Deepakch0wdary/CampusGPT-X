@@ -174,6 +174,13 @@ class User(Base):
     recordedFuelLogs = relationship("TransportFuelLog", back_populates="recorder")
     reportedTransportIncidents = relationship("TransportIncident", back_populates="reporter")
     transportAudits = relationship("TransportAudit", back_populates="user", cascade="all, delete-orphan")
+    meetingsAsParent = relationship("ParentTeacherMeeting", foreign_keys="[ParentTeacherMeeting.parentUserId]", back_populates="parentUser", cascade="all, delete-orphan")
+    meetingsAsStudent = relationship("ParentTeacherMeeting", foreign_keys="[ParentTeacherMeeting.studentId]", back_populates="student", cascade="all, delete-orphan")
+    meetingsAsTeacher = relationship("ParentTeacherMeeting", foreign_keys="[ParentTeacherMeeting.teacherUserId]", back_populates="teacherUser", cascade="all, delete-orphan")
+    meetingNotesWritten = relationship("ParentMeetingNote", back_populates="author", cascade="all, delete-orphan")
+    parentConsents = relationship("ParentConsent", foreign_keys="[ParentConsent.parentUserId]", back_populates="parentUser", cascade="all, delete-orphan")
+    studentConsents = relationship("ParentConsent", foreign_keys="[ParentConsent.studentId]", back_populates="student", cascade="all, delete-orphan")
+
 
 
 class UserProfile(Base):
@@ -1767,6 +1774,7 @@ class ParentProfile(Base):
     studentLinks = relationship("ParentStudentLink", back_populates="parent", cascade="all, delete-orphan")
     notifications = relationship("ParentNotification", back_populates="parent", cascade="all, delete-orphan")
     audits = relationship("ParentAudit", back_populates="parent", cascade="all, delete-orphan")
+    notificationPreference = relationship("ParentNotificationPreference", back_populates="parent", uselist=False, cascade="all, delete-orphan")
 
 class ParentStudentLink(Base):
     __tablename__ = "ParentStudentLink"
@@ -1780,6 +1788,19 @@ class ParentStudentLink(Base):
     relationship = Column(String(191), nullable=False)
     isPrimaryContact = Column(Boolean, default=True, nullable=False)
     createdAt = Column(DateTime, default=datetime.utcnow)
+
+    # Extended properties for parent portal access
+    canViewAcademics = Column(Boolean, default=True, nullable=False)
+    canViewAttendance = Column(Boolean, default=True, nullable=False)
+    canViewResults = Column(Boolean, default=True, nullable=False)
+    canViewFees = Column(Boolean, default=True, nullable=False)
+    canViewLibrary = Column(Boolean, default=True, nullable=False)
+    canViewHostel = Column(Boolean, default=True, nullable=False)
+    canViewTransport = Column(Boolean, default=True, nullable=False)
+    canReceiveNotifications = Column(Boolean, default=True, nullable=False)
+    status = Column(String(191), default="VERIFIED", nullable=False) # PENDING, VERIFIED, SUSPENDED, REVOKED
+    verifiedAt = Column(DateTime, nullable=True)
+    verifiedBy = Column(String(191), nullable=True)
 
     __table_args__ = (
         UniqueConstraint("parentId", "studentId", name="uix_parent_student"),
@@ -2940,3 +2961,78 @@ class TransportAudit(Base):
     createdAt = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="transportAudits")
+
+
+class ParentTeacherMeeting(Base):
+    __tablename__ = "ParentTeacherMeeting"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    parentUserId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    studentId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    teacherUserId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    scheduledAt = Column(DateTime, nullable=False)
+    durationMinutes = Column(Integer, default=30, nullable=False)
+    meetingMode = Column(String(191), default="ONLINE", nullable=False)  # IN_PERSON, ONLINE, PHONE
+    locationOrLink = Column(Text, nullable=True)
+    agenda = Column(Text, nullable=False)
+    status = Column(String(191), default="REQUESTED", nullable=False)  # REQUESTED, APPROVED, REJECTED, RESCHEDULED, COMPLETED, CANCELLED, NO_SHOW
+    requestedBy = Column(String(191), nullable=False)  # PARENT, TEACHER, ADMIN
+    approvedBy = Column(String(191), nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    parentUser = relationship("User", foreign_keys=[parentUserId], back_populates="meetingsAsParent")
+    student = relationship("User", foreign_keys=[studentId], back_populates="meetingsAsStudent")
+    teacherUser = relationship("User", foreign_keys=[teacherUserId], back_populates="meetingsAsTeacher")
+    notes = relationship("ParentMeetingNote", back_populates="meeting", cascade="all, delete-orphan")
+
+
+class ParentMeetingNote(Base):
+    __tablename__ = "ParentMeetingNote"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    meetingId = Column(String(191), ForeignKey("ParentTeacherMeeting.id", ondelete="CASCADE"), nullable=False)
+    authorId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    noteText = Column(Text, nullable=False)
+    visibleToParent = Column(Boolean, default=True, nullable=False)
+    staffOnly = Column(Boolean, default=False, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    meeting = relationship("ParentTeacherMeeting", back_populates="notes")
+    author = relationship("User", back_populates="meetingNotesWritten")
+
+
+class ParentConsent(Base):
+    __tablename__ = "ParentConsent"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    parentUserId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    studentId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    consentType = Column(String(191), nullable=False)  # EVENT, FIELD_TRIP, MEDIA, EMERGENCY, OPTIONAL_PROGRAM
+    title = Column(String(191), nullable=False)
+    description = Column(Text, nullable=False)
+    status = Column(String(191), default="PENDING", nullable=False)  # PENDING, APPROVED, DECLINED, REVOKED, EXPIRED
+    respondedAt = Column(DateTime, nullable=True)
+    expiresAt = Column(DateTime, nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    parentUser = relationship("User", foreign_keys=[parentUserId], back_populates="parentConsents")
+    student = relationship("User", foreign_keys=[studentId], back_populates="studentConsents")
+
+
+class ParentNotificationPreference(Base):
+    __tablename__ = "ParentNotificationPreference"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    parentProfileId = Column(String(191), ForeignKey("ParentProfile.id", ondelete="CASCADE"), unique=True, nullable=False)
+    attendanceAlerts = Column(Boolean, default=True, nullable=False)
+    assignmentAlerts = Column(Boolean, default=True, nullable=False)
+    examAlerts = Column(Boolean, default=True, nullable=False)
+    resultAlerts = Column(Boolean, default=True, nullable=False)
+    feeAlerts = Column(Boolean, default=True, nullable=False)
+    libraryAlerts = Column(Boolean, default=True, nullable=False)
+    hostelAlerts = Column(Boolean, default=True, nullable=False)
+    transportAlerts = Column(Boolean, default=True, nullable=False)
+    emergencyAlerts = Column(Boolean, default=True, nullable=False)
+    eventAlerts = Column(Boolean, default=True, nullable=False)
+    channels = Column(String(191), default="IN_APP,EMAIL", nullable=False)  # IN_APP, EMAIL, SMS, PUSH
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    parent = relationship("ParentProfile", back_populates="notificationPreference")

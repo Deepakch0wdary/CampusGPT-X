@@ -131,6 +131,12 @@ model User {
   recordedFuelLogs             TransportFuelLog[]       @relation("FuelRecorder")
   reportedTransportIncidents   TransportIncident[]      @relation("ReporterIncidents")
   transportAudits              TransportAudit[]
+  meetingsAsParent             ParentTeacherMeeting[]   @relation("MeetingParent")
+  meetingsAsStudent            ParentTeacherMeeting[]   @relation("MeetingStudent")
+  meetingsAsTeacher            ParentTeacherMeeting[]   @relation("MeetingTeacher")
+  meetingNotesWritten          ParentMeetingNote[]
+  parentConsents               ParentConsent[]
+  studentConsents              ParentConsent[]          @relation("ConsentStudent")
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
 
@@ -1657,6 +1663,7 @@ model ParentProfile {
   studentLinks     ParentStudentLink[]
   notifications    ParentNotification[]
   audits           ParentAudit[]
+  notificationPreference ParentNotificationPreference?
   createdAt        DateTime            @default(now())
   updatedAt        DateTime            @updatedAt
 }
@@ -1670,6 +1677,19 @@ model ParentStudentLink {
   relationship       String
   isPrimaryContact   Boolean       @default(true)
   createdAt          DateTime      @default(now())
+
+  // Extended properties for parent portal access
+  canViewAcademics       Boolean   @default(true)
+  canViewAttendance      Boolean   @default(true)
+  canViewResults         Boolean   @default(true)
+  canViewFees            Boolean   @default(true)
+  canViewLibrary         Boolean   @default(true)
+  canViewHostel          Boolean   @default(true)
+  canViewTransport       Boolean   @default(true)
+  canReceiveNotifications Boolean  @default(true)
+  status                 String    @default("VERIFIED") // PENDING, VERIFIED, SUSPENDED, REVOKED
+  verifiedAt             DateTime?
+  verifiedBy             String?
 
   @@unique([parentId, studentId])
   @@index([parentId])
@@ -1720,6 +1740,82 @@ model ParentAudit {
   @@index([parentId])
   @@index([userId])
   @@index([createdAt])
+}
+
+model ParentTeacherMeeting {
+  id              String             @id @default(uuid())
+  parentUserId    String
+  parentUser      User               @relation("MeetingParent", fields: [parentUserId], references: [id], onDelete: Cascade)
+  studentId       String
+  student         User               @relation("MeetingStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  teacherUserId   String
+  teacherUser     User               @relation("MeetingTeacher", fields: [teacherUserId], references: [id], onDelete: Cascade)
+  scheduledAt     DateTime
+  durationMinutes Int                @default(30)
+  meetingMode     String             @default("ONLINE") // IN_PERSON, ONLINE, PHONE
+  locationOrLink  String?            @db.Text
+  agenda          String             @db.Text
+  status          String             @default("REQUESTED") // REQUESTED, APPROVED, REJECTED, RESCHEDULED, COMPLETED, CANCELLED, NO_SHOW
+  requestedBy     String             // PARENT, TEACHER, ADMIN
+  approvedBy      String?
+  notes           ParentMeetingNote[]
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@index([parentUserId])
+  @@index([studentId])
+  @@index([teacherUserId])
+}
+
+model ParentMeetingNote {
+  id               String               @id @default(uuid())
+  meetingId        String
+  meeting          ParentTeacherMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  authorId         String
+  author           User                 @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  noteText         String               @db.Text
+  visibleToParent  Boolean              @default(true)
+  staffOnly        Boolean              @default(false)
+  createdAt        DateTime             @default(now())
+
+  @@index([meetingId])
+}
+
+model ParentConsent {
+  id           String    @id @default(uuid())
+  parentUserId String
+  parentUser   User      @relation(fields: [parentUserId], references: [id], onDelete: Cascade)
+  studentId    String
+  student      User      @relation("ConsentStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  consentType  String    // EVENT, FIELD_TRIP, MEDIA, EMERGENCY, OPTIONAL_PROGRAM
+  title        String
+  description  String    @db.Text
+  status       String    @default("PENDING") // PENDING, APPROVED, DECLINED, REVOKED, EXPIRED
+  respondedAt  DateTime?
+  expiresAt    DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([parentUserId])
+  @@index([studentId])
+}
+
+model ParentNotificationPreference {
+  id                      String        @id @default(uuid())
+  parentProfileId         String        @unique
+  parent                  ParentProfile @relation(fields: [parentProfileId], references: [id], onDelete: Cascade)
+  attendanceAlerts        Boolean       @default(true)
+  assignmentAlerts        Boolean       @default(true)
+  examAlerts              Boolean       @default(true)
+  resultAlerts            Boolean       @default(true)
+  feeAlerts               Boolean       @default(true)
+  libraryAlerts           Boolean       @default(true)
+  hostelAlerts            Boolean       @default(true)
+  transportAlerts         Boolean       @default(true)
+  emergencyAlerts         Boolean       @default(true)
+  eventAlerts             Boolean       @default(true)
+  channels                String        @default("IN_APP,EMAIL") // IN_APP, EMAIL, SMS, PUSH
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
 }
 
 model LibraryBranch {

@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import health, auth, users, sessions, audits, academics, students, faculties, timetables, attendances, qr_attendances, faces, assignments, exams, results, admissions, fees, parents, library, hostel, transport
+from app.api.v1.endpoints import health, auth, users, sessions, audits, academics, students, faculties, timetables, attendances, qr_attendances, faces, assignments, exams, results, admissions, fees, parents, library, hostel, transport, parent_portal
 
 api_router = APIRouter()
 api_router.include_router(health.router, prefix="/health", tags=["System Health"])
@@ -42,6 +42,7 @@ api_router.include_router(fees.router, prefix="", tags=["Fee Management"])
 
 # Parent Portal Router
 api_router.include_router(parents.router, prefix="/parents", tags=["Parent Portal"])
+api_router.include_router(parent_portal.router, prefix="/parent", tags=["Unified Parent Portal"])
 
 # Smart Library Router
 api_router.include_router(library.router, prefix="/library", tags=["Smart Library"])

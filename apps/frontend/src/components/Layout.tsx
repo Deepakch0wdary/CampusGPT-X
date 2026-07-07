@@ -115,7 +115,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       { text: 'Fees', icon: <FeeIcon />, path: '/fee-dashboard' },
       { text: 'Library Portal', icon: <LibraryIcon />, path: '/library-dashboard' },
       { text: 'Hostel Portal', icon: <HostelIcon />, path: '/hostel-dashboard' },
-      { text: 'Transport Portal', icon: <TransportIcon />, path: '/transport-dashboard' }
+      { text: 'Transport Portal', icon: <TransportIcon />, path: '/transport-dashboard' },
+      { text: 'Parent Portal', icon: <ParentIcon />, path: '/parent-dashboard' }
     );
   } else if (user?.role === 'STUDENT') {
     menuItems.push(

@@ -26,7 +26,7 @@ import ExamDashboard from './pages/ExamDashboard';
 import ResultDashboard from './pages/ResultDashboard';
 import AdmissionDashboard from './pages/AdmissionDashboard';
 import FeeDashboard from './pages/FeeDashboard';
-import ParentDashboard from './pages/ParentDashboard';
+import { ParentDashboard } from './pages/ParentDashboard';
 import LibraryDashboard from './pages/LibraryDashboard';
 import HostelDashboard from './pages/HostelDashboard';
 import { TransportDashboard } from './pages/TransportDashboard';
