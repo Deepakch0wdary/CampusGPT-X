@@ -30,6 +30,13 @@ import { ParentDashboard } from './pages/ParentDashboard';
 import LibraryDashboard from './pages/LibraryDashboard';
 import HostelDashboard from './pages/HostelDashboard';
 import { TransportDashboard } from './pages/TransportDashboard';
+import NotificationCenter from './pages/NotificationCenter';
+import NotificationPreferences from './pages/NotificationPreferences';
+import CommunicationDashboard from './pages/CommunicationDashboard';
+import AnnouncementManager from './pages/AnnouncementManager';
+import BroadcastManager from './pages/BroadcastManager';
+import EmergencyAlerts from './pages/EmergencyAlerts';
+import NotificationTemplates from './pages/NotificationTemplates';
 
 // Intercept all API calls to catch 401 Unauthorized errors and clear stale sessions
 const originalFetch = window.fetch;
@@ -233,6 +240,48 @@ const App: React.FC = () => {
               <PrivateRoute>
                 <TransportDashboard />
               </PrivateRoute>
+            } />
+
+            <Route path="/notifications" element={
+              <PrivateRoute>
+                <NotificationCenter />
+              </PrivateRoute>
+            } />
+
+            <Route path="/notification-preferences" element={
+              <PrivateRoute>
+                <NotificationPreferences />
+              </PrivateRoute>
+            } />
+
+            <Route path="/communication-dashboard" element={
+              <AdminRoute>
+                <CommunicationDashboard />
+              </AdminRoute>
+            } />
+
+            <Route path="/announcements" element={
+              <AdminRoute>
+                <AnnouncementManager />
+              </AdminRoute>
+            } />
+
+            <Route path="/broadcasts" element={
+              <AdminRoute>
+                <BroadcastManager />
+              </AdminRoute>
+            } />
+
+            <Route path="/emergency-alerts" element={
+              <AdminRoute>
+                <EmergencyAlerts />
+              </AdminRoute>
+            } />
+
+            <Route path="/notification-templates" element={
+              <AdminRoute>
+                <NotificationTemplates />
+              </AdminRoute>
             } />
 
             {/* Admin Exclusive Routes */}

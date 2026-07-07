@@ -181,6 +181,17 @@ class User(Base):
     parentConsents = relationship("ParentConsent", foreign_keys="[ParentConsent.parentUserId]", back_populates="parentUser", cascade="all, delete-orphan")
     studentConsents = relationship("ParentConsent", foreign_keys="[ParentConsent.studentId]", back_populates="student", cascade="all, delete-orphan")
 
+    receivedNotifications = relationship("Notification", foreign_keys="[Notification.recipientId]", back_populates="recipient", cascade="all, delete-orphan")
+    sentNotifications = relationship("Notification", foreign_keys="[Notification.senderId]", back_populates="sender")
+    notificationPreference = relationship("NotificationPreference", uselist=False, back_populates="user", cascade="all, delete-orphan")
+    createdAnnouncements = relationship("Announcement", back_populates="author", cascade="all, delete-orphan")
+    createdTemplates = relationship("NotificationTemplate", back_populates="creator", cascade="all, delete-orphan")
+    readReceipts = relationship("NotificationReadReceipt", back_populates="user", cascade="all, delete-orphan")
+    createdCampaigns = relationship("BroadcastCampaign", back_populates="creator", cascade="all, delete-orphan")
+    broadcastRecipients = relationship("BroadcastRecipient", back_populates="user", cascade="all, delete-orphan")
+    createdEmergencyAlerts = relationship("EmergencyAlert", back_populates="creator", cascade="all, delete-orphan")
+    communicationAudits = relationship("CommunicationAudit", back_populates="actor")
+
 
 
 class UserProfile(Base):
@@ -3036,3 +3047,192 @@ class ParentNotificationPreference(Base):
     updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     parent = relationship("ParentProfile", back_populates="notificationPreference")
+
+
+class Notification(Base):
+    __tablename__ = "Notification"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    recipientId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    senderId = Column(String(191), ForeignKey("User.id", ondelete="SET NULL"), nullable=True)
+    title = Column(String(191), nullable=False)
+    body = Column(Text, nullable=False)
+    type = Column(String(191), nullable=False)  # INFO, WARNING, SUCCESS, ERROR
+    priority = Column(String(191), nullable=False)  # LOW, MEDIUM, HIGH, CRITICAL
+    channel = Column(String(191), nullable=False)  # IN_APP, EMAIL, SMS, PUSH
+    status = Column(String(191), nullable=False)  # PENDING, DELIVERED, FAILED, READ
+    entityType = Column(String(191), nullable=True)
+    entityId = Column(String(191), nullable=True)
+    actionUrl = Column(String(191), nullable=True)
+    readAt = Column(DateTime, nullable=True)
+    deliveredAt = Column(DateTime, nullable=True)
+    expiresAt = Column(DateTime, nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    recipient = relationship("User", foreign_keys=[recipientId], back_populates="receivedNotifications")
+    sender = relationship("User", foreign_keys=[senderId], back_populates="sentNotifications")
+    deliveries = relationship("NotificationDelivery", back_populates="notification", cascade="all, delete-orphan")
+    readReceipts = relationship("NotificationReadReceipt", back_populates="notification", cascade="all, delete-orphan")
+
+
+class NotificationPreference(Base):
+    __tablename__ = "NotificationPreference"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    userId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), unique=True, nullable=False)
+    inAppEnabled = Column(Boolean, default=True, nullable=False)
+    emailEnabled = Column(Boolean, default=True, nullable=False)
+    smsEnabled = Column(Boolean, default=True, nullable=False)
+    pushEnabled = Column(Boolean, default=True, nullable=False)
+    academicEnabled = Column(Boolean, default=True, nullable=False)
+    attendanceEnabled = Column(Boolean, default=True, nullable=False)
+    feeEnabled = Column(Boolean, default=True, nullable=False)
+    examEnabled = Column(Boolean, default=True, nullable=False)
+    resultEnabled = Column(Boolean, default=True, nullable=False)
+    transportEnabled = Column(Boolean, default=True, nullable=False)
+    hostelEnabled = Column(Boolean, default=True, nullable=False)
+    libraryEnabled = Column(Boolean, default=True, nullable=False)
+    emergencyEnabled = Column(Boolean, default=True, nullable=False)
+    quietHoursEnabled = Column(Boolean, default=False, nullable=False)
+    quietHoursStart = Column(String(191), nullable=True)  # HH:MM format
+    quietHoursEnd = Column(String(191), nullable=True)    # HH:MM format
+    timezone = Column(String(191), default="UTC", nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = relationship("User", back_populates="notificationPreference")
+
+
+class Announcement(Base):
+    __tablename__ = "Announcement"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    title = Column(String(191), nullable=False)
+    body = Column(Text, nullable=False)
+    authorId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    audienceType = Column(String(191), nullable=False)  # ALL, ROLE, DEPARTMENT, SECTION, PROGRAM, INDIVIDUAL
+    priority = Column(String(191), nullable=False)  # LOW, MEDIUM, HIGH, EMERGENCY
+    publishAt = Column(DateTime, default=datetime.utcnow, nullable=False)
+    expiresAt = Column(DateTime, nullable=True)
+    status = Column(String(191), nullable=False)  # DRAFT, PUBLISHED, ARCHIVED
+    pinned = Column(Boolean, default=False, nullable=False)
+    departmentId = Column(String(191), nullable=True)
+    sectionId = Column(String(191), nullable=True)
+    programId = Column(String(191), nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    author = relationship("User", back_populates="createdAnnouncements")
+
+
+class NotificationTemplate(Base):
+    __tablename__ = "NotificationTemplate"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    name = Column(String(191), nullable=False)
+    code = Column(String(191), unique=True, nullable=False)
+    subjectTemplate = Column(String(191), nullable=False)
+    bodyTemplate = Column(Text, nullable=False)
+    channel = Column(String(191), nullable=False)  # IN_APP, EMAIL, SMS, PUSH
+    category = Column(String(191), nullable=False)  # ACADEMIC, ATTENDANCE, FEES, EXAMS, RESULTS, TRANSPORT, HOSTEL, LIBRARY, EMERGENCY, GENERAL
+    active = Column(Boolean, default=True, nullable=False)
+    createdById = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    version = Column(Integer, default=1, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    creator = relationship("User", back_populates="createdTemplates")
+
+
+class NotificationDelivery(Base):
+    __tablename__ = "NotificationDelivery"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    notificationId = Column(String(191), ForeignKey("Notification.id", ondelete="CASCADE"), nullable=False)
+    channel = Column(String(191), nullable=False)  # IN_APP, EMAIL, SMS, PUSH
+    provider = Column(String(191), nullable=False)  # SIMULATED_DEMO_PROVIDER
+    providerMessageId = Column(String(191), nullable=True)
+    attemptNumber = Column(Integer, default=1, nullable=False)
+    status = Column(String(191), nullable=False)  # PENDING, SENT, FAILED
+    attemptedAt = Column(DateTime, default=datetime.utcnow, nullable=False)
+    deliveredAt = Column(DateTime, nullable=True)
+    failureReason = Column(Text, nullable=True)
+
+    notification = relationship("Notification", back_populates="deliveries")
+
+
+class NotificationReadReceipt(Base):
+    __tablename__ = "NotificationReadReceipt"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    notificationId = Column(String(191), ForeignKey("Notification.id", ondelete="CASCADE"), nullable=False)
+    userId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    readAt = Column(DateTime, default=datetime.utcnow, nullable=False)
+    deviceInfo = Column(String(191), nullable=True)
+
+    notification = relationship("Notification", back_populates="readReceipts")
+    user = relationship("User", back_populates="readReceipts")
+
+    __table_args__ = (UniqueConstraint('notificationId', 'userId', name='_notification_user_uc'),)
+
+
+class BroadcastCampaign(Base):
+    __tablename__ = "BroadcastCampaign"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    name = Column(String(191), nullable=False)
+    title = Column(String(191), nullable=False)
+    body = Column(Text, nullable=False)
+    createdById = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    audienceType = Column(String(191), nullable=False)  # ALL, ROLE, DEPARTMENT, SECTION, PROGRAM
+    scheduledAt = Column(DateTime, nullable=True)
+    startedAt = Column(DateTime, nullable=True)
+    completedAt = Column(DateTime, nullable=True)
+    status = Column(String(191), nullable=False)  # DRAFT, SCHEDULED, SENDING, COMPLETED, CANCELLED
+    totalRecipients = Column(Integer, default=0, nullable=False)
+    successCount = Column(Integer, default=0, nullable=False)
+    failureCount = Column(Integer, default=0, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    creator = relationship("User", back_populates="createdCampaigns")
+    recipients = relationship("BroadcastRecipient", back_populates="campaign", cascade="all, delete-orphan")
+
+
+class BroadcastRecipient(Base):
+    __tablename__ = "BroadcastRecipient"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    campaignId = Column(String(191), ForeignKey("BroadcastCampaign.id", ondelete="CASCADE"), nullable=False)
+    userId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    notificationId = Column(String(191), nullable=True)
+    deliveryStatus = Column(String(191), nullable=False)  # PENDING, SENT, FAILED
+
+    campaign = relationship("BroadcastCampaign", back_populates="recipients")
+    user = relationship("User", back_populates="broadcastRecipients")
+
+    __table_args__ = (UniqueConstraint('campaignId', 'userId', name='_campaign_user_uc'),)
+
+
+class EmergencyAlert(Base):
+    __tablename__ = "EmergencyAlert"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    title = Column(String(191), nullable=False)
+    message = Column(Text, nullable=False)
+    severity = Column(String(191), nullable=False)  # MEDIUM, HIGH, CRITICAL
+    createdById = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    status = Column(String(191), nullable=False)  # ACTIVE, RESOLVED
+    activatedAt = Column(DateTime, default=datetime.utcnow, nullable=False)
+    resolvedAt = Column(DateTime, nullable=True)
+    targetAudience = Column(String(191), nullable=False)  # ALL, STAFF, STUDENTS
+    locationText = Column(String(191), nullable=True)
+    instructions = Column(Text, nullable=True)
+
+    creator = relationship("User", back_populates="createdEmergencyAlerts")
+
+
+class CommunicationAudit(Base):
+    __tablename__ = "CommunicationAudit"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    actorId = Column(String(191), ForeignKey("User.id", ondelete="SET NULL"), nullable=True)
+    action = Column(String(191), nullable=False)
+    entityType = Column(String(191), nullable=False)
+    entityId = Column(String(191), nullable=False)
+    actionMetadata = Column("metadata", Text, nullable=True)  # JSON or text details
+    ipAddress = Column(String(191), nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    actor = relationship("User", back_populates="communicationAudits")

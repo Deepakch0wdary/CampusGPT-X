@@ -34,8 +34,11 @@ import {
   SupervisorAccount as ParentIcon,
   LocalLibrary as LibraryIcon,
   Home as HostelIcon,
-  DirectionsBus as TransportIcon
+  DirectionsBus as TransportIcon,
+  Campaign as CampaignIcon,
+  Notifications as NotificationsIcon
 } from '@mui/icons-material';
+import { NotificationBell } from './NotificationBell';
 
 const DRAWER_WIDTH = 260;
 
@@ -116,7 +119,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       { text: 'Library Portal', icon: <LibraryIcon />, path: '/library-dashboard' },
       { text: 'Hostel Portal', icon: <HostelIcon />, path: '/hostel-dashboard' },
       { text: 'Transport Portal', icon: <TransportIcon />, path: '/transport-dashboard' },
-      { text: 'Parent Portal', icon: <ParentIcon />, path: '/parent-dashboard' }
+      { text: 'Parent Portal', icon: <ParentIcon />, path: '/parent-dashboard' },
+      { text: 'Communication', icon: <CampaignIcon />, path: '/communication-dashboard' },
+      { text: 'Notifications', icon: <NotificationsIcon />, path: '/notifications' }
     );
   } else if (user?.role === 'STUDENT') {
     menuItems.push(
@@ -133,7 +138,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       { text: 'Admissions', icon: <AdmissionIcon />, path: '/admission-dashboard' },
       { text: 'Fees', icon: <FeeIcon />, path: '/fee-dashboard' },
       { text: 'Hostel Portal', icon: <HostelIcon />, path: '/hostel-dashboard' },
-      { text: 'Transport Portal', icon: <TransportIcon />, path: '/transport-dashboard' }
+      { text: 'Transport Portal', icon: <TransportIcon />, path: '/transport-dashboard' },
+      { text: 'Notifications', icon: <NotificationsIcon />, path: '/notifications' }
     );
   } else if (user?.role === 'TEACHER') {
     menuItems.push(
@@ -149,24 +155,28 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       { text: 'Results', icon: <ResultIcon />, path: '/result-dashboard' },
       { text: 'Admissions', icon: <AdmissionIcon />, path: '/admission-dashboard' },
       { text: 'Fees', icon: <FeeIcon />, path: '/fee-dashboard' },
-      { text: 'Transport Portal', icon: <TransportIcon />, path: '/transport-dashboard' }
+      { text: 'Transport Portal', icon: <TransportIcon />, path: '/transport-dashboard' },
+      { text: 'Notifications', icon: <NotificationsIcon />, path: '/notifications' }
     );
   } else if (user?.role === 'LIBRARIAN') {
     menuItems.push(
       { text: 'Overview', icon: <DashboardIcon />, path: '/' },
-      { text: 'Library Portal', icon: <LibraryIcon />, path: '/library-dashboard' }
+      { text: 'Library Portal', icon: <LibraryIcon />, path: '/library-dashboard' },
+      { text: 'Notifications', icon: <NotificationsIcon />, path: '/notifications' }
     );
   } else if (user?.role === 'PARENT') {
     menuItems.push(
       { text: 'Overview', icon: <DashboardIcon />, path: '/' },
       { text: 'Parent Portal', icon: <ParentIcon />, path: '/parent-dashboard' },
-      { text: 'Transport Portal', icon: <TransportIcon />, path: '/transport-dashboard' }
+      { text: 'Transport Portal', icon: <TransportIcon />, path: '/transport-dashboard' },
+      { text: 'Notifications', icon: <NotificationsIcon />, path: '/notifications' }
     );
   } else {
     // Default fallback menu
     menuItems.push(
       { text: 'Overview', icon: <DashboardIcon />, path: '/' },
-      { text: 'Academics', icon: <SchoolIcon />, path: '/academics' }
+      { text: 'Academics', icon: <SchoolIcon />, path: '/academics' },
+      { text: 'Notifications', icon: <NotificationsIcon />, path: '/notifications' }
     );
   }
 
@@ -253,6 +263,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           <Typography variant="h6" noWrap component="div" sx={{ fontFamily: 'Outfit', fontWeight: 600, flexGrow: 1 }}>
             Smart Campus Portal
           </Typography>
+          <NotificationBell />
         </Toolbar>
       </AppBar>
 

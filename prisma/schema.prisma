@@ -137,6 +137,16 @@ model User {
   meetingNotesWritten          ParentMeetingNote[]
   parentConsents               ParentConsent[]
   studentConsents              ParentConsent[]          @relation("ConsentStudent")
+  receivedNotifications        Notification[]           @relation("NotificationRecipient")
+  sentNotifications            Notification[]           @relation("NotificationSender")
+  notificationPreference       NotificationPreference?
+  createdAnnouncements         Announcement[]           @relation("AnnouncementAuthor")
+  createdTemplates             NotificationTemplate[]   @relation("TemplateCreator")
+  readReceipts                 NotificationReadReceipt[]
+  createdCampaigns             BroadcastCampaign[]      @relation("CampaignCreator")
+  broadcastRecipients          BroadcastRecipient[]
+  createdEmergencyAlerts       EmergencyAlert[]         @relation("EmergencyAlertCreator")
+  communicationAudits          CommunicationAudit[]
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
 
@@ -2873,5 +2883,196 @@ model TransportAudit {
   createdAt DateTime @default(now())
 
   @@index([userId])
+  @@index([createdAt])
+}
+
+model Notification {
+  id           String   @id @default(uuid())
+  recipientId  String
+  recipient    User     @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  senderId     String?
+  sender       User?    @relation("NotificationSender", fields: [senderId], references: [id], onDelete: SetNull)
+  title        String
+  body         String   @db.Text
+  type         String   // INFO, WARNING, SUCCESS, ERROR
+  priority     String   // LOW, MEDIUM, HIGH, CRITICAL
+  channel      String   // IN_APP, EMAIL, SMS, PUSH
+  status       String   // PENDING, DELIVERED, FAILED, READ
+  entityType   String?
+  entityId     String?
+  actionUrl    String?
+  readAt       DateTime?
+  deliveredAt  DateTime?
+  expiresAt    DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  deliveries   NotificationDelivery[]
+  readReceipts NotificationReadReceipt[]
+
+  @@index([recipientId])
+  @@index([senderId])
+  @@index([createdAt])
+}
+
+model NotificationPreference {
+  id                 String   @id @default(uuid())
+  userId             String   @unique
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  inAppEnabled       Boolean  @default(true)
+  emailEnabled       Boolean  @default(true)
+  smsEnabled         Boolean  @default(true)
+  pushEnabled        Boolean  @default(true)
+  academicEnabled    Boolean  @default(true)
+  attendanceEnabled  Boolean  @default(true)
+  feeEnabled         Boolean  @default(true)
+  examEnabled        Boolean  @default(true)
+  resultEnabled      Boolean  @default(true)
+  transportEnabled   Boolean  @default(true)
+  hostelEnabled      Boolean  @default(true)
+  libraryEnabled     Boolean  @default(true)
+  emergencyEnabled   Boolean  @default(true)
+  quietHoursEnabled  Boolean  @default(false)
+  quietHoursStart    String?  // HH:MM format
+  quietHoursEnd      String?  // HH:MM format
+  timezone           String   @default("UTC")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model Announcement {
+  id           String   @id @default(uuid())
+  title        String
+  body         String   @db.Text
+  authorId     String
+  author       User     @relation("AnnouncementAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  audienceType String   // ALL, ROLE, DEPARTMENT, SECTION, PROGRAM, INDIVIDUAL
+  priority     String   // LOW, MEDIUM, HIGH, EMERGENCY
+  publishAt    DateTime @default(now())
+  expiresAt    DateTime?
+  status       String   // DRAFT, PUBLISHED, ARCHIVED
+  pinned       Boolean  @default(false)
+  departmentId String?
+  sectionId    String?
+  programId    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([authorId])
+  @@index([publishAt])
+}
+
+model NotificationTemplate {
+  id              String   @id @default(uuid())
+  name            String
+  code            String   @unique
+  subjectTemplate String
+  bodyTemplate    String   @db.Text
+  channel         String   // IN_APP, EMAIL, SMS, PUSH
+  category        String   // ACADEMIC, ATTENDANCE, FEES, EXAMS, RESULTS, TRANSPORT, HOSTEL, LIBRARY, EMERGENCY, GENERAL
+  active          Boolean  @default(true)
+  createdById     String
+  creator         User     @relation("TemplateCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  version         Int      @default(1)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([createdById])
+}
+
+model NotificationDelivery {
+  id                String       @id @default(uuid())
+  notificationId    String
+  notification      Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  channel           String       // IN_APP, EMAIL, SMS, PUSH
+  provider          String       // SIMULATED_DEMO_PROVIDER
+  providerMessageId String?
+  attemptNumber     Int          @default(1)
+  status            String       // PENDING, SENT, FAILED
+  attemptedAt       DateTime     @default(now())
+  deliveredAt       DateTime?
+  failureReason     String?      @db.Text
+
+  @@index([notificationId])
+}
+
+model NotificationReadReceipt {
+  id             String       @id @default(uuid())
+  notificationId String
+  notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  readAt         DateTime     @default(now())
+  deviceInfo     String?
+
+  @@unique([notificationId, userId])
+  @@index([notificationId])
+  @@index([userId])
+}
+
+model BroadcastCampaign {
+  id              String   @id @default(uuid())
+  name            String
+  title           String
+  body            String   @db.Text
+  createdById     String
+  creator         User     @relation("CampaignCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  audienceType    String   // ALL, ROLE, DEPARTMENT, SECTION, PROGRAM
+  scheduledAt     DateTime?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  status          String   // DRAFT, SCHEDULED, SENDING, COMPLETED, CANCELLED
+  totalRecipients Int      @default(0)
+  successCount    Int      @default(0)
+  failureCount    Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  recipients      BroadcastRecipient[]
+
+  @@index([createdById])
+}
+
+model BroadcastRecipient {
+  id             String            @id @default(uuid())
+  campaignId     String
+  campaign       BroadcastCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notificationId String?
+  deliveryStatus String            // PENDING, SENT, FAILED
+
+  @@unique([campaignId, userId])
+  @@index([campaignId])
+  @@index([userId])
+}
+
+model EmergencyAlert {
+  id             String   @id @default(uuid())
+  title          String
+  message        String   @db.Text
+  severity       String   // MEDIUM, HIGH, CRITICAL
+  createdById    String
+  creator         User     @relation("EmergencyAlertCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  status         String   // ACTIVE, RESOLVED
+  activatedAt    DateTime @default(now())
+  resolvedAt     DateTime?
+  targetAudience String   // ALL, STAFF, STUDENTS
+  locationText   String?
+  instructions   String?  @db.Text
+
+  @@index([createdById])
+}
+
+model CommunicationAudit {
+  id         String   @id @default(uuid())
+  actorId    String?
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  action     String
+  entityType String
+  entityId   String
+  metadata   String?  @db.Text
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  @@index([actorId])
   @@index([createdAt])
 }
