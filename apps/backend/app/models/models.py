@@ -161,6 +161,20 @@ class User(Base):
     waivedHostelFines = relationship("HostelFine", foreign_keys="[HostelFine.waivedBy]", back_populates="waiverUser", cascade="all, delete-orphan")
     reportedIncidents = relationship("HostelIncident", back_populates="reporter", cascade="all, delete-orphan")
     hostelAudits = relationship("HostelAudit", back_populates="user", cascade="all, delete-orphan")
+    transportDriverProfile = relationship("TransportDriverProfile", uselist=False, back_populates="user", cascade="all, delete-orphan")
+    transportStaffProfile = relationship("TransportStaffProfile", uselist=False, back_populates="user", cascade="all, delete-orphan")
+    transportApplications = relationship("TransportApplication", foreign_keys="[TransportApplication.applicantUserId]", back_populates="applicant", cascade="all, delete-orphan")
+    reviewedTransportApplications = relationship("TransportApplication", foreign_keys="[TransportApplication.reviewedBy]", back_populates="reviewer")
+    transportSubscriptions = relationship("TransportSubscription", foreign_keys="[TransportSubscription.userId]", back_populates="user", cascade="all, delete-orphan")
+    approvedSubscriptions = relationship("TransportSubscription", foreign_keys="[TransportSubscription.approvedBy]", back_populates="approver")
+    allocatedSeats = relationship("TransportSeatAllocation", back_populates="allocator")
+    transportPasses = relationship("TransportPass", back_populates="user", cascade="all, delete-orphan")
+    boardedTrips = relationship("TransportBoarding", foreign_keys="[TransportBoarding.userId]", back_populates="user", cascade="all, delete-orphan")
+    verifiedBoardings = relationship("TransportBoarding", foreign_keys="[TransportBoarding.verifiedBy]", back_populates="verifier")
+    recordedFuelLogs = relationship("TransportFuelLog", back_populates="recorder")
+    reportedTransportIncidents = relationship("TransportIncident", back_populates="reporter")
+    transportAudits = relationship("TransportAudit", back_populates="user", cascade="all, delete-orphan")
+
 
 class UserProfile(Base):
     __tablename__ = "UserProfile"
@@ -2529,3 +2543,400 @@ class HostelAudit(Base):
 
     user = relationship("User", back_populates="hostelAudits")
 
+
+class TransportVehicle(Base):
+    __tablename__ = "TransportVehicle"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    registrationNumber = Column(String(191), unique=True, nullable=False)
+    vehicleCode = Column(String(191), unique=True, nullable=False)
+    vehicleType = Column(String(191), nullable=False)  # BUS, MINI_BUS, VAN, CAR, SHUTTLE, ELECTRIC_BUS
+    manufacturer = Column(String(191), nullable=False)
+    model = Column(String(191), nullable=False)
+    manufactureYear = Column(Integer, nullable=False)
+    seatingCapacity = Column(Integer, nullable=False)
+    standingCapacity = Column(Integer, nullable=False)
+    fuelType = Column(String(191), nullable=False)  # DIESEL, PETROL, CNG, ELECTRIC, HYBRID
+    chassisNumberMasked = Column(String(191), nullable=False)
+    engineNumberMasked = Column(String(191), nullable=False)
+    insuranceExpiry = Column(DateTime, nullable=False)
+    fitnessExpiry = Column(DateTime, nullable=False)
+    pollutionExpiry = Column(DateTime, nullable=False)
+    permitExpiry = Column(DateTime, nullable=False)
+    gpsDeviceId = Column(String(191), unique=True, nullable=False)
+    status = Column(String(191), default="ACTIVE", nullable=False)  # ACTIVE, INACTIVE, MAINTENANCE, BREAKDOWN, RETIRED
+    active = Column(Boolean, default=True, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    assignments = relationship("TransportVehicleAssignment", back_populates="vehicle", cascade="all, delete-orphan")
+    seats = relationship("TransportSeat", back_populates="vehicle", cascade="all, delete-orphan")
+    trips = relationship("TransportTrip", back_populates="vehicle", cascade="all, delete-orphan")
+    locations = relationship("TransportVehicleLocation", back_populates="vehicle", cascade="all, delete-orphan")
+    maintenances = relationship("TransportMaintenance", back_populates="vehicle", cascade="all, delete-orphan")
+    fuelLogs = relationship("TransportFuelLog", back_populates="vehicle", cascade="all, delete-orphan")
+    incidents = relationship("TransportIncident", back_populates="vehicle", cascade="all, delete-orphan")
+
+
+class TransportDriverProfile(Base):
+    __tablename__ = "TransportDriverProfile"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    userId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), unique=True, nullable=False)
+    employeeCode = Column(String(191), unique=True, nullable=False)
+    licenseNumberMasked = Column(String(191), nullable=False)
+    licenseType = Column(String(191), nullable=False)
+    licenseExpiry = Column(DateTime, nullable=False)
+    emergencyContact = Column(String(191), nullable=False)
+    joiningDate = Column(DateTime, nullable=False)
+    status = Column(String(191), default="ACTIVE", nullable=False)  # ACTIVE, INACTIVE, ON_LEAVE
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = relationship("User", back_populates="transportDriverProfile")
+    assignments = relationship("TransportVehicleAssignment", back_populates="driver", cascade="all, delete-orphan")
+    trips = relationship("TransportTrip", back_populates="driver", cascade="all, delete-orphan")
+
+
+class TransportStaffProfile(Base):
+    __tablename__ = "TransportStaffProfile"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    userId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), unique=True, nullable=False)
+    employeeCode = Column(String(191), unique=True, nullable=False)
+    status = Column(String(191), default="ACTIVE", nullable=False)  # ACTIVE, INACTIVE
+    emergencyContact = Column(String(191), nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = relationship("User", back_populates="transportStaffProfile")
+    assignments = relationship("TransportVehicleAssignment", back_populates="conductor", cascade="all, delete-orphan")
+    trips = relationship("TransportTrip", back_populates="conductor", cascade="all, delete-orphan")
+
+
+class TransportRoute(Base):
+    __tablename__ = "TransportRoute"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    name = Column(String(191), nullable=False)
+    code = Column(String(191), unique=True, nullable=False)
+    description = Column(Text, nullable=True)
+    origin = Column(String(191), nullable=False)
+    destination = Column(String(191), nullable=False)
+    estimatedDistanceKm = Column(Numeric(precision=10, scale=2, asdecimal=True), nullable=False)
+    estimatedDurationMinutes = Column(Integer, nullable=False)
+    status = Column(String(191), default="ACTIVE", nullable=False)  # ACTIVE, INACTIVE, SUSPENDED
+    active = Column(Boolean, default=True, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    stops = relationship("TransportRouteStop", back_populates="route", order_by="TransportRouteStop.stopOrder", cascade="all, delete-orphan")
+    assignments = relationship("TransportVehicleAssignment", back_populates="route", cascade="all, delete-orphan")
+    applications = relationship("TransportApplication", back_populates="route", cascade="all, delete-orphan")
+    subscriptions = relationship("TransportSubscription", back_populates="route", cascade="all, delete-orphan")
+    trips = relationship("TransportTrip", back_populates="route", cascade="all, delete-orphan")
+
+
+class TransportStop(Base):
+    __tablename__ = "TransportStop"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    name = Column(String(191), nullable=False)
+    code = Column(String(191), unique=True, nullable=False)
+    address = Column(Text, nullable=True)
+    latitude = Column(Float, nullable=False)
+    longitude = Column(Float, nullable=False)
+    landmark = Column(String(191), nullable=True)
+    active = Column(Boolean, default=True, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    routes = relationship("TransportRouteStop", back_populates="stop", cascade="all, delete-orphan")
+    applicationsPickup = relationship("TransportApplication", foreign_keys="[TransportApplication.pickupStopId]", back_populates="pickupStop", cascade="all, delete-orphan")
+    applicationsDrop = relationship("TransportApplication", foreign_keys="[TransportApplication.dropStopId]", back_populates="dropStop", cascade="all, delete-orphan")
+    subscriptionsPickup = relationship("TransportSubscription", foreign_keys="[TransportSubscription.pickupStopId]", back_populates="pickupStop", cascade="all, delete-orphan")
+    subscriptionsDrop = relationship("TransportSubscription", foreign_keys="[TransportSubscription.dropStopId]", back_populates="dropStop", cascade="all, delete-orphan")
+    boardings = relationship("TransportBoarding", back_populates="stop", cascade="all, delete-orphan")
+
+
+class TransportRouteStop(Base):
+    __tablename__ = "TransportRouteStop"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    routeId = Column(String(191), ForeignKey("TransportRoute.id", ondelete="CASCADE"), nullable=False)
+    stopId = Column(String(191), ForeignKey("TransportStop.id", ondelete="CASCADE"), nullable=False)
+    stopOrder = Column(Integer, nullable=False)
+    scheduledArrivalTime = Column(String(191), nullable=False)
+    scheduledDepartureTime = Column(String(191), nullable=False)
+    pickupAllowed = Column(Boolean, default=True, nullable=False)
+    dropAllowed = Column(Boolean, default=True, nullable=False)
+    distanceFromOriginKm = Column(Numeric(precision=10, scale=2, asdecimal=True), nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    route = relationship("TransportRoute", back_populates="stops")
+    stop = relationship("TransportStop", back_populates="routes")
+
+    __table_args__ = (
+        UniqueConstraint("routeId", "stopId", name="uix_route_stop"),
+        UniqueConstraint("routeId", "stopOrder", name="uix_route_stop_order"),
+    )
+
+
+class TransportVehicleAssignment(Base):
+    __tablename__ = "TransportVehicleAssignment"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    vehicleId = Column(String(191), ForeignKey("TransportVehicle.id", ondelete="CASCADE"), nullable=False)
+    routeId = Column(String(191), ForeignKey("TransportRoute.id", ondelete="CASCADE"), nullable=False)
+    driverId = Column(String(191), ForeignKey("TransportDriverProfile.id", ondelete="CASCADE"), nullable=False)
+    conductorId = Column(String(191), ForeignKey("TransportStaffProfile.id", ondelete="SET NULL"), nullable=True)
+    startDate = Column(DateTime, nullable=False)
+    endDate = Column(DateTime, nullable=True)
+    shift = Column(String(191), nullable=False)  # MORNING, EVENING, FULL_DAY, CUSTOM
+    status = Column(String(191), default="ACTIVE", nullable=False)  # ACTIVE, INACTIVE
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    vehicle = relationship("TransportVehicle", back_populates="assignments")
+    route = relationship("TransportRoute", back_populates="assignments")
+    driver = relationship("TransportDriverProfile", back_populates="assignments")
+    conductor = relationship("TransportStaffProfile", back_populates="assignments")
+
+
+class TransportApplication(Base):
+    __tablename__ = "TransportApplication"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    applicantUserId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    academicYearId = Column(String(191), nullable=False)
+    routeId = Column(String(191), ForeignKey("TransportRoute.id", ondelete="CASCADE"), nullable=False)
+    pickupStopId = Column(String(191), ForeignKey("TransportStop.id", ondelete="CASCADE"), nullable=False)
+    dropStopId = Column(String(191), ForeignKey("TransportStop.id", ondelete="CASCADE"), nullable=False)
+    reason = Column(Text, nullable=True)
+    status = Column(String(191), default="SUBMITTED", nullable=False)  # DRAFT, SUBMITTED, UNDER_REVIEW, APPROVED, REJECTED, WAITLISTED, ALLOCATED, CANCELLED
+    submittedAt = Column(DateTime, default=datetime.utcnow)
+    reviewedAt = Column(DateTime, nullable=True)
+    reviewedBy = Column(String(191), ForeignKey("User.id", ondelete="SET NULL"), nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    applicant = relationship("User", foreign_keys=[applicantUserId], back_populates="transportApplications")
+    reviewer = relationship("User", foreign_keys=[reviewedBy], back_populates="reviewedTransportApplications")
+    route = relationship("TransportRoute", back_populates="applications")
+    pickupStop = relationship("TransportStop", foreign_keys=[pickupStopId], back_populates="applicationsPickup")
+    dropStop = relationship("TransportStop", foreign_keys=[dropStopId], back_populates="applicationsDrop")
+
+
+class TransportSubscription(Base):
+    __tablename__ = "TransportSubscription"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    userId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    routeId = Column(String(191), ForeignKey("TransportRoute.id", ondelete="CASCADE"), nullable=False)
+    pickupStopId = Column(String(191), ForeignKey("TransportStop.id", ondelete="CASCADE"), nullable=False)
+    dropStopId = Column(String(191), ForeignKey("TransportStop.id", ondelete="CASCADE"), nullable=False)
+    startDate = Column(DateTime, nullable=False)
+    endDate = Column(DateTime, nullable=False)
+    status = Column(String(191), default="ACTIVE", nullable=False)  # PENDING, ACTIVE, SUSPENDED, EXPIRED, CANCELLED
+    approvedBy = Column(String(191), ForeignKey("User.id", ondelete="SET NULL"), nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = relationship("User", foreign_keys=[userId], back_populates="transportSubscriptions")
+    approver = relationship("User", foreign_keys=[approvedBy], back_populates="approvedSubscriptions")
+    route = relationship("TransportRoute", back_populates="subscriptions")
+    pickupStop = relationship("TransportStop", foreign_keys=[pickupStopId], back_populates="subscriptionsPickup")
+    dropStop = relationship("TransportStop", foreign_keys=[dropStopId], back_populates="subscriptionsDrop")
+    allocations = relationship("TransportSeatAllocation", back_populates="subscription", cascade="all, delete-orphan")
+    passes = relationship("TransportPass", back_populates="subscription", cascade="all, delete-orphan")
+
+
+class TransportSeat(Base):
+    __tablename__ = "TransportSeat"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    vehicleId = Column(String(191), ForeignKey("TransportVehicle.id", ondelete="CASCADE"), nullable=False)
+    seatNumber = Column(String(191), nullable=False)
+    seatType = Column(String(191), default="REGULAR", nullable=False)  # REGULAR, PRIORITY, ACCESSIBLE, STAFF
+    status = Column(String(191), default="AVAILABLE", nullable=False)  # AVAILABLE, ALLOCATED, BLOCKED, MAINTENANCE
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    vehicle = relationship("TransportVehicle", back_populates="seats")
+    allocations = relationship("TransportSeatAllocation", back_populates="seat", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        UniqueConstraint("vehicleId", "seatNumber", name="uix_vehicle_seat"),
+    )
+
+
+class TransportSeatAllocation(Base):
+    __tablename__ = "TransportSeatAllocation"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    subscriptionId = Column(String(191), ForeignKey("TransportSubscription.id", ondelete="CASCADE"), nullable=False)
+    seatId = Column(String(191), ForeignKey("TransportSeat.id", ondelete="CASCADE"), nullable=False)
+    allocatedBy = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    allocatedAt = Column(DateTime, default=datetime.utcnow)
+    startDate = Column(DateTime, nullable=False)
+    endDate = Column(DateTime, nullable=False)
+    status = Column(String(191), default="ACTIVE", nullable=False)  # ACTIVE, INACTIVE
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    subscription = relationship("TransportSubscription", back_populates="allocations")
+    seat = relationship("TransportSeat", back_populates="allocations")
+    allocator = relationship("User", back_populates="allocatedSeats")
+
+
+class TransportPass(Base):
+    __tablename__ = "TransportPass"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    subscriptionId = Column(String(191), ForeignKey("TransportSubscription.id", ondelete="CASCADE"), nullable=False)
+    passNumber = Column(String(191), unique=True, nullable=False)
+    tokenHash = Column(String(191), unique=True, nullable=False)
+    issuedAt = Column(DateTime, default=datetime.utcnow)
+    expiresAt = Column(DateTime, nullable=False)
+    status = Column(String(191), default="ACTIVE", nullable=False)  # ACTIVE, EXPIRED, REVOKED, SUSPENDED
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    userId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+
+    subscription = relationship("TransportSubscription", back_populates="passes")
+    user = relationship("User", back_populates="transportPasses")
+
+
+class TransportTrip(Base):
+    __tablename__ = "TransportTrip"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    routeId = Column(String(191), ForeignKey("TransportRoute.id", ondelete="CASCADE"), nullable=False)
+    vehicleId = Column(String(191), ForeignKey("TransportVehicle.id", ondelete="CASCADE"), nullable=False)
+    driverId = Column(String(191), ForeignKey("TransportDriverProfile.id", ondelete="CASCADE"), nullable=False)
+    conductorId = Column(String(191), ForeignKey("TransportStaffProfile.id", ondelete="SET NULL"), nullable=True)
+    scheduledStartAt = Column(DateTime, nullable=False)
+    actualStartAt = Column(DateTime, nullable=True)
+    scheduledEndAt = Column(DateTime, nullable=False)
+    actualEndAt = Column(DateTime, nullable=True)
+    status = Column(String(191), default="SCHEDULED", nullable=False)  # SCHEDULED, BOARDING, IN_PROGRESS, DELAYED, COMPLETED, CANCELLED, BREAKDOWN
+    delayMinutes = Column(Integer, default=0, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    route = relationship("TransportRoute", back_populates="trips")
+    vehicle = relationship("TransportVehicle", back_populates="trips")
+    driver = relationship("TransportDriverProfile", back_populates="trips")
+    conductor = relationship("TransportStaffProfile", back_populates="trips")
+    boardings = relationship("TransportBoarding", back_populates="trip", cascade="all, delete-orphan")
+    locations = relationship("TransportVehicleLocation", back_populates="trip", cascade="all, delete-orphan")
+    delays = relationship("TransportDelay", back_populates="trip", cascade="all, delete-orphan")
+    incidents = relationship("TransportIncident", back_populates="trip", cascade="all, delete-orphan")
+
+
+class TransportBoarding(Base):
+    __tablename__ = "TransportBoarding"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    tripId = Column(String(191), ForeignKey("TransportTrip.id", ondelete="CASCADE"), nullable=False)
+    userId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    stopId = Column(String(191), ForeignKey("TransportStop.id", ondelete="CASCADE"), nullable=False)
+    boardingType = Column(String(191), nullable=False)  # PICKUP, DROP
+    boardedAt = Column(DateTime, default=datetime.utcnow)
+    verifiedBy = Column(String(191), ForeignKey("User.id", ondelete="SET NULL"), nullable=True)
+    status = Column(String(191), default="VERIFIED", nullable=False)  # VERIFIED, FLAGGED
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    trip = relationship("TransportTrip", back_populates="boardings")
+    user = relationship("User", foreign_keys=[userId], back_populates="boardedTrips")
+    verifier = relationship("User", foreign_keys=[verifiedBy], back_populates="verifiedBoardings")
+    stop = relationship("TransportStop", back_populates="boardings")
+
+
+class TransportVehicleLocation(Base):
+    __tablename__ = "TransportVehicleLocation"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    vehicleId = Column(String(191), ForeignKey("TransportVehicle.id", ondelete="CASCADE"), nullable=False)
+    tripId = Column(String(191), ForeignKey("TransportTrip.id", ondelete="CASCADE"), nullable=True)
+    latitude = Column(Float, nullable=False)
+    longitude = Column(Float, nullable=False)
+    speedKph = Column(Float, nullable=False)
+    heading = Column(Float, nullable=False)
+    recordedAt = Column(DateTime, default=datetime.utcnow)
+    source = Column(String(191), nullable=False)  # GPS_DEVICE, DRIVER_APP, SIMULATOR, MANUAL
+
+    vehicle = relationship("TransportVehicle", back_populates="locations")
+    trip = relationship("TransportTrip", back_populates="locations")
+
+
+class TransportMaintenance(Base):
+    __tablename__ = "TransportMaintenance"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    vehicleId = Column(String(191), ForeignKey("TransportVehicle.id", ondelete="CASCADE"), nullable=False)
+    maintenanceType = Column(String(191), nullable=False)  # PREVENTIVE, CORRECTIVE, BREAKDOWN, INSPECTION, SERVICE
+    description = Column(Text, nullable=False)
+    scheduledDate = Column(DateTime, nullable=False)
+    startedAt = Column(DateTime, nullable=True)
+    completedAt = Column(DateTime, nullable=True)
+    odometerKm = Column(Integer, nullable=False)
+    estimatedCost = Column(Numeric(precision=10, scale=2, asdecimal=True), nullable=False)
+    actualCost = Column(Numeric(precision=10, scale=2, asdecimal=True), default=0.0, nullable=False)
+    vendorName = Column(String(191), nullable=False)
+    status = Column(String(191), default="SCHEDULED", nullable=False)  # SCHEDULED, IN_PROGRESS, COMPLETED, CANCELLED
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    vehicle = relationship("TransportVehicle", back_populates="maintenances")
+
+
+class TransportFuelLog(Base):
+    __tablename__ = "TransportFuelLog"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    vehicleId = Column(String(191), ForeignKey("TransportVehicle.id", ondelete="CASCADE"), nullable=False)
+    filledAt = Column(DateTime, nullable=False)
+    quantityLitres = Column(Numeric(precision=10, scale=2, asdecimal=True), nullable=False)
+    unitPrice = Column(Numeric(precision=10, scale=2, asdecimal=True), nullable=False)
+    totalAmount = Column(Numeric(precision=10, scale=2, asdecimal=True), nullable=False)
+    odometerKm = Column(Integer, nullable=False)
+    fuelStation = Column(String(191), nullable=False)
+    recordedBy = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    vehicle = relationship("TransportVehicle", back_populates="fuelLogs")
+    recorder = relationship("User", back_populates="recordedFuelLogs")
+
+
+class TransportIncident(Base):
+    __tablename__ = "TransportIncident"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    tripId = Column(String(191), ForeignKey("TransportTrip.id", ondelete="CASCADE"), nullable=True)
+    vehicleId = Column(String(191), ForeignKey("TransportVehicle.id", ondelete="CASCADE"), nullable=False)
+    reportedBy = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    type = Column(String(191), nullable=False)  # ACCIDENT, BREAKDOWN, DELAY, MEDICAL, SECURITY, BEHAVIOR, OTHER
+    severity = Column(String(191), nullable=False)  # LOW, MEDIUM, HIGH, CRITICAL
+    description = Column(Text, nullable=False)
+    locationText = Column(String(191), nullable=False)
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
+    occurredAt = Column(DateTime, nullable=False)
+    status = Column(String(191), default="OPEN", nullable=False)  # OPEN, INVESTIGATING, RESOLVED, CLOSED
+    resolution = Column(Text, nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    trip = relationship("TransportTrip", back_populates="incidents")
+    vehicle = relationship("TransportVehicle", back_populates="incidents")
+    reporter = relationship("User", back_populates="reportedTransportIncidents")
+
+
+class TransportDelay(Base):
+    __tablename__ = "TransportDelay"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    tripId = Column(String(191), ForeignKey("TransportTrip.id", ondelete="CASCADE"), nullable=False)
+    delayMinutes = Column(Integer, nullable=False)
+    reason = Column(Text, nullable=False)
+    reportedAt = Column(DateTime, default=datetime.utcnow)
+    notified = Column(Boolean, default=False, nullable=False)
+
+    trip = relationship("TransportTrip", back_populates="delays")
+
+
+class TransportAudit(Base):
+    __tablename__ = "TransportAudit"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    userId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    action = Column(String(191), nullable=False)
+    details = Column(Text, nullable=True)
+    ipAddress = Column(String(191), nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="transportAudits")

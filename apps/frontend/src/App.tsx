@@ -29,6 +29,7 @@ import FeeDashboard from './pages/FeeDashboard';
 import ParentDashboard from './pages/ParentDashboard';
 import LibraryDashboard from './pages/LibraryDashboard';
 import HostelDashboard from './pages/HostelDashboard';
+import { TransportDashboard } from './pages/TransportDashboard';
 
 // Intercept all API calls to catch 401 Unauthorized errors and clear stale sessions
 const originalFetch = window.fetch;
@@ -225,6 +226,12 @@ const App: React.FC = () => {
             <Route path="/hostel-dashboard" element={
               <PrivateRoute>
                 <HostelDashboard />
+              </PrivateRoute>
+            } />
+
+            <Route path="/transport-dashboard" element={
+              <PrivateRoute>
+                <TransportDashboard />
               </PrivateRoute>
             } />
 

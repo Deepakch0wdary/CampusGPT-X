@@ -33,7 +33,8 @@ import {
   ReceiptLong as FeeIcon,
   SupervisorAccount as ParentIcon,
   LocalLibrary as LibraryIcon,
-  Home as HostelIcon
+  Home as HostelIcon,
+  DirectionsBus as TransportIcon
 } from '@mui/icons-material';
 
 const DRAWER_WIDTH = 260;
@@ -113,7 +114,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       { text: 'Admissions', icon: <AdmissionIcon />, path: '/admission-dashboard' },
       { text: 'Fees', icon: <FeeIcon />, path: '/fee-dashboard' },
       { text: 'Library Portal', icon: <LibraryIcon />, path: '/library-dashboard' },
-      { text: 'Hostel Portal', icon: <HostelIcon />, path: '/hostel-dashboard' }
+      { text: 'Hostel Portal', icon: <HostelIcon />, path: '/hostel-dashboard' },
+      { text: 'Transport Portal', icon: <TransportIcon />, path: '/transport-dashboard' }
     );
   } else if (user?.role === 'STUDENT') {
     menuItems.push(
@@ -129,7 +131,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       { text: 'Results', icon: <ResultIcon />, path: '/result-dashboard' },
       { text: 'Admissions', icon: <AdmissionIcon />, path: '/admission-dashboard' },
       { text: 'Fees', icon: <FeeIcon />, path: '/fee-dashboard' },
-      { text: 'Hostel Portal', icon: <HostelIcon />, path: '/hostel-dashboard' }
+      { text: 'Hostel Portal', icon: <HostelIcon />, path: '/hostel-dashboard' },
+      { text: 'Transport Portal', icon: <TransportIcon />, path: '/transport-dashboard' }
     );
   } else if (user?.role === 'TEACHER') {
     menuItems.push(
@@ -144,7 +147,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       { text: 'Exams', icon: <ExamIcon />, path: '/exam-dashboard' },
       { text: 'Results', icon: <ResultIcon />, path: '/result-dashboard' },
       { text: 'Admissions', icon: <AdmissionIcon />, path: '/admission-dashboard' },
-      { text: 'Fees', icon: <FeeIcon />, path: '/fee-dashboard' }
+      { text: 'Fees', icon: <FeeIcon />, path: '/fee-dashboard' },
+      { text: 'Transport Portal', icon: <TransportIcon />, path: '/transport-dashboard' }
     );
   } else if (user?.role === 'LIBRARIAN') {
     menuItems.push(
@@ -154,7 +158,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   } else if (user?.role === 'PARENT') {
     menuItems.push(
       { text: 'Overview', icon: <DashboardIcon />, path: '/' },
-      { text: 'Parent Portal', icon: <ParentIcon />, path: '/parent-dashboard' }
+      { text: 'Parent Portal', icon: <ParentIcon />, path: '/parent-dashboard' },
+      { text: 'Transport Portal', icon: <TransportIcon />, path: '/transport-dashboard' }
     );
   } else {
     // Default fallback menu

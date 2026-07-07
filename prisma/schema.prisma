@@ -118,6 +118,19 @@ model User {
   waivedHostelFines            HostelFine[]             @relation("WardenWaivedFines")
   reportedIncidents            HostelIncident[]         @relation("ReporterIncidents")
   hostelAudits                 HostelAudit[]
+  transportDriverProfile       TransportDriverProfile?
+  transportStaffProfile        TransportStaffProfile?
+  transportApplications        TransportApplication[]   @relation("ApplicantApplications")
+  reviewedTransportApplications TransportApplication[]  @relation("TransportManagerReviewed")
+  transportSubscriptions       TransportSubscription[]  @relation("UserSubscriptions")
+  approvedSubscriptions        TransportSubscription[]  @relation("ManagerApprovedSubscriptions")
+  allocatedSeats               TransportSeatAllocation[] @relation("AllocatedByUser")
+  transportPasses              TransportPass[]          @relation("UserPasses")
+  boardedTrips                 TransportBoarding[]      @relation("BoardedUser")
+  verifiedBoardings            TransportBoarding[]      @relation("BoardingVerifier")
+  recordedFuelLogs             TransportFuelLog[]       @relation("FuelRecorder")
+  reportedTransportIncidents   TransportIncident[]      @relation("ReporterIncidents")
+  transportAudits              TransportAudit[]
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
 
@@ -2410,3 +2423,359 @@ model HostelAudit {
   @@index([createdAt])
 }
 
+model TransportVehicle {
+  id                   String                       @id @default(uuid())
+  registrationNumber   String                       @unique
+  vehicleCode          String                       @unique
+  vehicleType          String                       // BUS, MINI_BUS, VAN, CAR, SHUTTLE, ELECTRIC_BUS
+  manufacturer         String
+  model                String
+  manufactureYear      Int
+  seatingCapacity      Int
+  standingCapacity     Int
+  fuelType             String                       // DIESEL, PETROL, CNG, ELECTRIC, HYBRID
+  chassisNumberMasked  String
+  engineNumberMasked   String
+  insuranceExpiry      DateTime
+  fitnessExpiry        DateTime
+  pollutionExpiry      DateTime
+  permitExpiry         DateTime
+  gpsDeviceId          String                       @unique
+  status               String                       @default("ACTIVE") // ACTIVE, INACTIVE, MAINTENANCE, BREAKDOWN, RETIRED
+  active               Boolean                      @default(true)
+  createdAt            DateTime                     @default(now())
+  updatedAt            DateTime                     @updatedAt
+  assignments          TransportVehicleAssignment[]
+  seats                TransportSeat[]
+  trips                TransportTrip[]
+  locations            TransportVehicleLocation[]
+  maintenances         TransportMaintenance[]
+  fuelLogs             TransportFuelLog[]
+  incidents            TransportIncident[]
+}
+
+model TransportDriverProfile {
+  id                   String                       @id @default(uuid())
+  userId               String                       @unique
+  user                 User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  employeeCode         String                       @unique
+  licenseNumberMasked  String
+  licenseType          String
+  licenseExpiry        DateTime
+  emergencyContact     String
+  joiningDate          DateTime
+  status               String                       @default("ACTIVE") // ACTIVE, INACTIVE, ON_LEAVE
+  assignments          TransportVehicleAssignment[] @relation("DriverAssignments")
+  trips                TransportTrip[]              @relation("DriverTrips")
+  createdAt            DateTime                     @default(now())
+  updatedAt            DateTime                     @updatedAt
+}
+
+model TransportStaffProfile {
+  id                   String                       @id @default(uuid())
+  userId               String                       @unique
+  user                 User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  employeeCode         String                       @unique
+  status               String                       @default("ACTIVE") // ACTIVE, INACTIVE
+  emergencyContact     String
+  assignments          TransportVehicleAssignment[] @relation("ConductorAssignments")
+  trips                TransportTrip[]              @relation("ConductorTrips")
+  createdAt            DateTime                     @default(now())
+  updatedAt            DateTime                     @updatedAt
+}
+
+model TransportRoute {
+  id                       String                       @id @default(uuid())
+  name                     String
+  code                     String                       @unique
+  description              String?                      @db.Text
+  origin                   String
+  destination              String
+  estimatedDistanceKm      Decimal
+  estimatedDurationMinutes Int
+  status                   String                       @default("ACTIVE") // ACTIVE, INACTIVE, SUSPENDED
+  active                   Boolean                      @default(true)
+  createdAt                DateTime                     @default(now())
+  updatedAt                DateTime                     @updatedAt
+  stops                    TransportRouteStop[]
+  assignments              TransportVehicleAssignment[]
+  applications             TransportApplication[]
+  subscriptions            TransportSubscription[]
+  trips                    TransportTrip[]
+}
+
+model TransportStop {
+  id                  String               @id @default(uuid())
+  name                String
+  code                String               @unique
+  address             String?              @db.Text
+  latitude            Float
+  longitude           Float
+  landmark            String?
+  active              Boolean              @default(true)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  routes              TransportRouteStop[]
+  applicationsPickup  TransportApplication[] @relation("PickupStop")
+  applicationsDrop    TransportApplication[] @relation("DropStop")
+  subscriptionsPickup TransportSubscription[] @relation("SubPickupStop")
+  subscriptionsDrop   TransportSubscription[] @relation("SubDropStop")
+  boardings           TransportBoarding[]
+}
+
+model TransportRouteStop {
+  id                   String         @id @default(uuid())
+  routeId              String
+  route                TransportRoute @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  stopId               String
+  stop                 TransportStop  @relation(fields: [stopId], references: [id], onDelete: Cascade)
+  stopOrder            Int
+  scheduledArrivalTime   String
+  scheduledDepartureTime String
+  pickupAllowed        Boolean        @default(true)
+  dropAllowed          Boolean        @default(true)
+  distanceFromOriginKm Decimal
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+
+  @@unique([routeId, stopId])
+  @@unique([routeId, stopOrder])
+}
+
+model TransportVehicleAssignment {
+  id          String                @id @default(uuid())
+  vehicleId   String
+  vehicle     TransportVehicle      @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  routeId     String
+  route       TransportRoute        @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  driverId    String
+  driver      TransportDriverProfile @relation("DriverAssignments", fields: [driverId], references: [id], onDelete: Cascade)
+  conductorId String?
+  conductor   TransportStaffProfile? @relation("ConductorAssignments", fields: [conductorId], references: [id], onDelete: SetNull)
+  startDate   DateTime
+  endDate     DateTime?
+  shift       String                // MORNING, EVENING, FULL_DAY, CUSTOM
+  status      String                @default("ACTIVE") // ACTIVE, INACTIVE
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+}
+
+model TransportApplication {
+  id              String         @id @default(uuid())
+  applicantUserId String
+  applicant       User           @relation("ApplicantApplications", fields: [applicantUserId], references: [id], onDelete: Cascade)
+  academicYearId  String
+  routeId         String
+  route           TransportRoute @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  pickupStopId    String
+  pickupStop      TransportStop  @relation("PickupStop", fields: [pickupStopId], references: [id], onDelete: Cascade)
+  dropStopId      String
+  dropStop        TransportStop  @relation("DropStop", fields: [dropStopId], references: [id], onDelete: Cascade)
+  reason          String?        @db.Text
+  status          String         @default("SUBMITTED") // DRAFT, SUBMITTED, UNDER_REVIEW, APPROVED, REJECTED, WAITLISTED, ALLOCATED, CANCELLED
+  submittedAt     DateTime       @default(now())
+  reviewedAt      DateTime?
+  reviewedBy      String?
+  reviewer        User?          @relation("TransportManagerReviewed", fields: [reviewedBy], references: [id])
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+model TransportSubscription {
+  id           String                   @id @default(uuid())
+  userId       String
+  user         User                     @relation("UserSubscriptions", fields: [userId], references: [id], onDelete: Cascade)
+  routeId      String
+  route        TransportRoute           @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  pickupStopId String
+  pickupStop   TransportStop            @relation("SubPickupStop", fields: [pickupStopId], references: [id], onDelete: Cascade)
+  dropStopId   String
+  dropStop     TransportStop            @relation("SubDropStop", fields: [dropStopId], references: [id], onDelete: Cascade)
+  startDate    DateTime
+  endDate      DateTime
+  status       String                   @default("ACTIVE") // PENDING, ACTIVE, SUSPENDED, EXPIRED, CANCELLED
+  approvedBy   String?
+  approver     User?                    @relation("ManagerApprovedSubscriptions", fields: [approvedBy], references: [id])
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
+  allocations  TransportSeatAllocation[]
+  passes       TransportPass[]
+}
+
+model TransportSeat {
+  id              String                  @id @default(uuid())
+  vehicleId       String
+  vehicle         TransportVehicle        @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  seatNumber      String
+  seatType        String                  @default("REGULAR") // REGULAR, PRIORITY, ACCESSIBLE, STAFF
+  status          String                  @default("AVAILABLE") // AVAILABLE, ALLOCATED, BLOCKED, MAINTENANCE
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  allocations     TransportSeatAllocation[]
+
+  @@unique([vehicleId, seatNumber])
+}
+
+model TransportSeatAllocation {
+  id             String                @id @default(uuid())
+  subscriptionId String
+  subscription   TransportSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  seatId         String
+  seat           TransportSeat         @relation(fields: [seatId], references: [id], onDelete: Cascade)
+  allocatedBy    String
+  allocator      User                  @relation("AllocatedByUser", fields: [allocatedBy], references: [id])
+  allocatedAt    DateTime              @default(now())
+  startDate      DateTime
+  endDate        DateTime
+  status         String                @default("ACTIVE") // ACTIVE, INACTIVE
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+}
+
+model TransportPass {
+  id             String                @id @default(uuid())
+  subscriptionId String
+  subscription   TransportSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  passNumber     String                @unique
+  tokenHash      String                @unique
+  issuedAt       DateTime              @default(now())
+  expiresAt      DateTime
+  status         String                @default("ACTIVE") // ACTIVE, EXPIRED, REVOKED, SUSPENDED
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  userId         String
+  user           User                  @relation("UserPasses", fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model TransportTrip {
+  id                String                 @id @default(uuid())
+  routeId           String
+  route             TransportRoute         @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  vehicleId         String
+  vehicle           TransportVehicle       @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  driverId          String
+  driver            TransportDriverProfile @relation("DriverTrips", fields: [driverId], references: [id], onDelete: Cascade)
+  conductorId       String?
+  conductor         TransportStaffProfile? @relation("ConductorTrips", fields: [conductorId], references: [id], onDelete: SetNull)
+  scheduledStartAt  DateTime
+  actualStartAt     DateTime?
+  scheduledEndAt    DateTime
+  actualEndAt       DateTime?
+  status            String                 @default("SCHEDULED") // SCHEDULED, BOARDING, IN_PROGRESS, DELAYED, COMPLETED, CANCELLED, BREAKDOWN
+  delayMinutes      Int                    @default(0)
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  boardings         TransportBoarding[]
+  locations         TransportVehicleLocation[]
+  delays            TransportDelay[]
+  incidents         TransportIncident[]
+}
+
+model TransportBoarding {
+  id           String        @id @default(uuid())
+  tripId       String
+  trip         TransportTrip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User          @relation("BoardedUser", fields: [userId], references: [id], onDelete: Cascade)
+  stopId       String
+  stop         TransportStop @relation(fields: [stopId], references: [id], onDelete: Cascade)
+  boardingType String        // PICKUP, DROP
+  boardedAt    DateTime      @default(now())
+  verifiedBy   String?
+  verifier     User?         @relation("BoardingVerifier", fields: [verifiedBy], references: [id])
+  status       String        @default("VERIFIED") // VERIFIED, FLAGGED
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model TransportVehicleLocation {
+  id        String         @id @default(uuid())
+  vehicleId String
+  vehicle   TransportVehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  tripId    String?
+  trip      TransportTrip? @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  latitude  Float
+  longitude Float
+  speedKph  Float
+  heading   Float
+  recordedAt DateTime      @default(now())
+  source    String         // GPS_DEVICE, DRIVER_APP, SIMULATOR, MANUAL
+}
+
+model TransportMaintenance {
+  id              String           @id @default(uuid())
+  vehicleId       String
+  vehicle         TransportVehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  maintenanceType String           // PREVENTIVE, CORRECTIVE, BREAKDOWN, INSPECTION, SERVICE
+  description     String           @db.Text
+  scheduledDate   DateTime
+  startedAt       DateTime?
+  completedAt     DateTime?
+  odometerKm      Int
+  estimatedCost   Decimal
+  actualCost      Decimal
+  vendorName      String
+  status          String           @default("SCHEDULED") // SCHEDULED, IN_PROGRESS, COMPLETED, CANCELLED
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+model TransportFuelLog {
+  id            String           @id @default(uuid())
+  vehicleId     String
+  vehicle       TransportVehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  filledAt      DateTime
+  quantityLitres Decimal
+  unitPrice     Decimal
+  totalAmount   Decimal
+  odometerKm    Int
+  fuelStation   String
+  recordedBy    String
+  recorder      User             @relation("FuelRecorder", fields: [recordedBy], references: [id])
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+}
+
+model TransportIncident {
+  id          String            @id @default(uuid())
+  tripId      String?
+  trip        TransportTrip?    @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  vehicleId   String
+  vehicle     TransportVehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  reportedBy  String
+  reporter    User              @relation("ReporterIncidents", fields: [reportedBy], references: [id])
+  type        String            // ACCIDENT, BREAKDOWN, DELAY, MEDICAL, SECURITY, BEHAVIOR, OTHER
+  severity    String            // LOW, MEDIUM, HIGH, CRITICAL
+  description String            @db.Text
+  locationText String
+  latitude    Float?
+  longitude   Float?
+  occurredAt  DateTime
+  status      String            @default("OPEN") // OPEN, INVESTIGATING, RESOLVED, CLOSED
+  resolution  String?           @db.Text
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+}
+
+model TransportDelay {
+  id         String        @id @default(uuid())
+  tripId     String
+  trip       TransportTrip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  delayMinutes Int
+  reason     String        @db.Text
+  reportedAt DateTime      @default(now())
+  notified   Boolean       @default(false)
+}
+
+model TransportAudit {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action    String
+  details   String?  @db.Text
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+}
