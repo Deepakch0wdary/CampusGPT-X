@@ -147,6 +147,17 @@ model User {
   broadcastRecipients          BroadcastRecipient[]
   createdEmergencyAlerts       EmergencyAlert[]         @relation("EmergencyAlertCreator")
   communicationAudits          CommunicationAudit[]
+  academicMentorProfile        AcademicMentorProfile?
+  academicInsights             AcademicInsight[]
+  academicRiskAssessments      AcademicRiskAssessment[]
+  studyRecommendations         StudyRecommendation[]
+  studyPlans                   StudyPlan[]
+  mentorInterventionsInitiated MentorIntervention[]      @relation("InitiatorUser")
+  mentorInterventionsAssigned  MentorIntervention[]      @relation("AssigneeUser")
+  mentorInterventionsStudent   MentorIntervention[]      @relation("StudentIntervention")
+  studentGoals                 StudentGoal[]
+  academicMentorAudits         AcademicMentorAudit[]     @relation("AuditActor")
+  academicMentorStudentAudits   AcademicMentorAudit[]     @relation("AuditStudent")
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
 
@@ -400,6 +411,10 @@ model Subject {
   subjectAssignments  Assignment[]
   subjectExams        Exam[]
   resultDetails       ResultDetail[]
+  academicInsights     AcademicInsight[]
+  studyRecommendations StudyRecommendation[]
+  studyPlanItems       StudyPlanItem[]
+  studentGoals         StudentGoal[]
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
 }
@@ -3074,5 +3089,202 @@ model CommunicationAudit {
   createdAt  DateTime @default(now())
 
   @@index([actorId])
+  @@index([createdAt])
+}
+
+model AcademicMentorProfile {
+  id                 String   @id @default(uuid())
+  studentId          String   @unique
+  student            User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  engineType         String
+  dataCompleteness   Float
+  lastCalculatedAt   DateTime @default(now())
+  currentRiskLevel   String   // LOW, MODERATE, HIGH, CRITICAL, INSUFFICIENT_DATA
+  currentRiskScore   Float    @default(0.0)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([studentId])
+}
+
+model AcademicInsight {
+  id           String    @id @default(uuid())
+  studentId    String
+  student      User      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  type         String    // STRENGTH, WEAKNESS, TREND, ATTENDANCE, PERFORMANCE, DEADLINE, CONSISTENCY, IMPROVEMENT
+  title        String
+  summary      String    @db.Text
+  severity     String    // INFO, LOW, MEDIUM, HIGH
+  subjectId    String?
+  subject      Subject?  @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  evidenceJson String?   @db.Text
+  generatedBy  String
+  validFrom    DateTime  @default(now())
+  validUntil   DateTime?
+  dismissedAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([studentId])
+  @@index([type])
+  @@index([severity])
+  @@index([subjectId])
+}
+
+model AcademicRiskAssessment {
+  id               String               @id @default(uuid())
+  studentId        String
+  student          User                 @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  score            Float
+  level            String               // LOW, MODERATE, HIGH, CRITICAL, INSUFFICIENT_DATA
+  dataCompleteness Float
+  engineType       String
+  explanation      String               @db.Text
+  assessedAt       DateTime             @default(now())
+  expiresAt        DateTime?
+  version          Int                  @default(1)
+  factors          AcademicRiskFactor[]
+  createdAt        DateTime             @default(now())
+
+  @@index([studentId])
+  @@index([level])
+}
+
+model AcademicRiskFactor {
+  id              String                 @id @default(uuid())
+  assessmentId    String
+  assessment      AcademicRiskAssessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  factorCode      String
+  factorName      String
+  observedValue   String
+  normalizedValue Float
+  weight          Float
+  contribution    Float
+  direction       String
+  explanation     String                 @db.Text
+  sourceType      String
+
+  @@index([assessmentId])
+}
+
+model StudyRecommendation {
+  id           String    @id @default(uuid())
+  studentId    String
+  student      User      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subjectId    String?
+  subject      Subject?  @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  category     String    // REVISION, ATTENDANCE, ASSIGNMENT, EXAM_PREPARATION, TIME_MANAGEMENT, SUBJECT_SUPPORT, GOAL_PROGRESS
+  title        String
+  description  String    @db.Text
+  priority     String    // LOW, MEDIUM, HIGH, CRITICAL
+  reason       String    @db.Text
+  status       String    @default("ACTIVE") // ACTIVE, ACCEPTED, DISMISSED, COMPLETED, EXPIRED
+  generatedBy  String
+  acceptedAt   DateTime?
+  dismissedAt  DateTime?
+  completedAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([studentId])
+  @@index([status])
+  @@index([category])
+  @@index([subjectId])
+}
+
+model StudyPlan {
+  id                             String          @id @default(uuid())
+  studentId                      String
+  student                        User            @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  title                          String
+  description                    String?         @db.Text
+  startDate                      DateTime
+  endDate                        DateTime
+  status                         String          @default("DRAFT") // DRAFT, ACTIVE, COMPLETED, CANCELLED
+  generatedFromRecommendationId String?
+  items                          StudyPlanItem[]
+  createdAt                      DateTime        @default(now())
+  updatedAt                      DateTime        @updatedAt
+
+  @@index([studentId])
+  @@index([status])
+}
+
+model StudyPlanItem {
+  id               String    @id @default(uuid())
+  studyPlanId      String
+  studyPlan        StudyPlan @relation(fields: [studyPlanId], references: [id], onDelete: Cascade)
+  subjectId        String?
+  subject          Subject?  @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  title            String
+  description      String?   @db.Text
+  scheduledDate    DateTime
+  estimatedMinutes Int       @default(30)
+  status           String    @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED, SKIPPED
+  completedAt      DateTime?
+  orderIndex       Int       @default(0)
+
+  @@index([studyPlanId])
+  @@index([subjectId])
+}
+
+model StudentGoal {
+  id           String    @id @default(uuid())
+  studentId    String
+  student      User      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subjectId    String?
+  subject      Subject?  @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  title        String
+  targetType   String    // GPA, ATTENDANCE, MARKS, STUDY_TIME, OTHER
+  targetValue  Float
+  currentValue Float?
+  deadline     DateTime?
+  status       String    @default("ACTIVE") // ACTIVE, COMPLETED, ABANDONED
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([studentId])
+  @@index([status])
+  @@index([subjectId])
+}
+
+model MentorIntervention {
+  id            String    @id @default(uuid())
+  studentId     String
+  student       User      @relation("StudentIntervention", fields: [studentId], references: [id], onDelete: Cascade)
+  initiatedById String
+  initiator     User      @relation("InitiatorUser", fields: [initiatedById], references: [id], onDelete: Cascade)
+  assignedToId  String?
+  assignee      User?     @relation("AssigneeUser", fields: [assignedToId], references: [id], onDelete: SetNull)
+  type          String    // ACADEMIC_PROBATION, TUTORING, ATTENDANCE_REVIEW, COUNSELING, EXAM_PREP_PLAN, OTHER
+  reason        String    @db.Text
+  status        String    @default("OPEN") // OPEN, IN_PROGRESS, RESOLVED, CANCELLED
+  notes         String?   @db.Text
+  dueAt         DateTime?
+  resolvedAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([studentId])
+  @@index([initiatedById])
+  @@index([assignedToId])
+  @@index([status])
+}
+
+model AcademicMentorAudit {
+  id             String    @id @default(uuid())
+  actorId        String?
+  actor          User?     @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+  studentId      String?
+  student        User?     @relation("AuditStudent", fields: [studentId], references: [id], onDelete: SetNull)
+  action         String
+  entityType     String
+  entityId       String?
+  actionMetadata String?   @db.Text
+  ipAddress      String?
+  createdAt      DateTime  @default(now())
+
+  @@index([actorId])
+  @@index([studentId])
   @@index([createdAt])
 }

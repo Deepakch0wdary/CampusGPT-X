@@ -37,6 +37,16 @@ import AnnouncementManager from './pages/AnnouncementManager';
 import BroadcastManager from './pages/BroadcastManager';
 import EmergencyAlerts from './pages/EmergencyAlerts';
 import NotificationTemplates from './pages/NotificationTemplates';
+import AcademicMentorDashboard from './pages/AcademicMentorDashboard';
+import AcademicInsights from './pages/AcademicInsights';
+import RiskAssessment from './pages/RiskAssessment';
+import StudyRecommendations from './pages/StudyRecommendations';
+import StudyPlanner from './pages/StudyPlanner';
+import StudentGoals from './pages/StudentGoals';
+import MentorStudentDashboard from './pages/MentorStudentDashboard';
+import ParentAcademicInsights from './pages/ParentAcademicInsights';
+import AcademicIntelligenceAdmin from './pages/AcademicIntelligenceAdmin';
+import InterventionManager from './pages/InterventionManager';
 
 // Intercept all API calls to catch 401 Unauthorized errors and clear stale sessions
 const originalFetch = window.fetch;
@@ -133,7 +143,7 @@ const App: React.FC = () => {
               isAuthenticated() ? <Navigate to="/" replace /> : <Login />
             } />
             <Route path="/forgot-password" element={<ForgotPassword />} />
-            
+
             {/* Password Force Route */}
             <Route path="/change-password" element={
               isAuthenticated() ? <ChangePassword /> : <Navigate to="/login" replace />
@@ -254,6 +264,57 @@ const App: React.FC = () => {
               </PrivateRoute>
             } />
 
+            <Route path="/academic-mentor" element={
+              <PrivateRoute>
+                <AcademicMentorDashboard />
+              </PrivateRoute>
+            } />
+            <Route path="/academic-mentor/insights" element={
+              <PrivateRoute>
+                <AcademicInsights />
+              </PrivateRoute>
+            } />
+            <Route path="/academic-mentor/risk" element={
+              <PrivateRoute>
+                <RiskAssessment />
+              </PrivateRoute>
+            } />
+            <Route path="/academic-mentor/recommendations" element={
+              <PrivateRoute>
+                <StudyRecommendations />
+              </PrivateRoute>
+            } />
+            <Route path="/academic-mentor/study-planner" element={
+              <PrivateRoute>
+                <StudyPlanner />
+              </PrivateRoute>
+            } />
+            <Route path="/academic-mentor/goals" element={
+              <PrivateRoute>
+                <StudentGoals />
+              </PrivateRoute>
+            } />
+            <Route path="/parent/academic-insights" element={
+              <PrivateRoute>
+                <ParentAcademicInsights />
+              </PrivateRoute>
+            } />
+            <Route path="/mentor/students" element={
+              <PrivateRoute>
+                <MentorStudentDashboard />
+              </PrivateRoute>
+            } />
+            <Route path="/mentor/interventions" element={
+              <PrivateRoute>
+                <InterventionManager />
+              </PrivateRoute>
+            } />
+            <Route path="/admin/academic-intelligence" element={
+              <AdminRoute>
+                <AcademicIntelligenceAdmin />
+              </AdminRoute>
+            } />
+
             <Route path="/communication-dashboard" element={
               <AdminRoute>
                 <CommunicationDashboard />
@@ -290,7 +351,7 @@ const App: React.FC = () => {
                 <UserDashboard />
               </AdminRoute>
             } />
-            
+
             <Route path="/users/:id" element={
               <AdminRoute>
                 <UserDetails />

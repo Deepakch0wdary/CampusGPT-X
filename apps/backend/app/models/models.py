@@ -58,14 +58,14 @@ class User(Base):
     departmentId = Column(String(191), ForeignKey("Department.id", ondelete="SET NULL"), nullable=True)
     sectionId = Column(String(191), ForeignKey("Section.id", ondelete="SET NULL"), nullable=True)
     status = Column(String(191), default="ACTIVE", nullable=False)
-    
+
     isSuspended = Column(Boolean, default=False, nullable=False)
     isDisabled = Column(Boolean, default=False, nullable=False)
     mustChangePassword = Column(Boolean, default=True, nullable=False)
     failedLoginAttempts = Column(Integer, default=0, nullable=False)
     lockedUntil = Column(DateTime, nullable=True)
     verified = Column(Boolean, default=False, nullable=False)
-    
+
     createdAt = Column(DateTime, default=datetime.utcnow)
     updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -73,7 +73,7 @@ class User(Base):
     department = relationship("Department", back_populates="users")
     section = relationship("Section", back_populates="users", foreign_keys=[sectionId])
     profile = relationship("UserProfile", uselist=False, back_populates="user", cascade="all, delete-orphan")
-    
+
     userPermissions = relationship("UserPermission", back_populates="user", cascade="all, delete-orphan")
     sessions = relationship("UserSession", back_populates="user", cascade="all, delete-orphan")
     refreshTokens = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")
@@ -191,6 +191,17 @@ class User(Base):
     broadcastRecipients = relationship("BroadcastRecipient", back_populates="user", cascade="all, delete-orphan")
     createdEmergencyAlerts = relationship("EmergencyAlert", back_populates="creator", cascade="all, delete-orphan")
     communicationAudits = relationship("CommunicationAudit", back_populates="actor")
+    academicMentorProfile = relationship("AcademicMentorProfile", uselist=False, back_populates="student", cascade="all, delete-orphan")
+    academicInsights = relationship("AcademicInsight", back_populates="student", cascade="all, delete-orphan")
+    academicRiskAssessments = relationship("AcademicRiskAssessment", back_populates="student", cascade="all, delete-orphan")
+    studyRecommendations = relationship("StudyRecommendation", back_populates="student", cascade="all, delete-orphan")
+    studyPlans = relationship("StudyPlan", back_populates="student", cascade="all, delete-orphan")
+    mentorInterventionsInitiated = relationship("MentorIntervention", foreign_keys="[MentorIntervention.initiatedById]", back_populates="initiator", cascade="all, delete-orphan")
+    mentorInterventionsAssigned = relationship("MentorIntervention", foreign_keys="[MentorIntervention.assignedToId]", back_populates="assignee")
+    mentorInterventionsStudent = relationship("MentorIntervention", foreign_keys="[MentorIntervention.studentId]", back_populates="student", cascade="all, delete-orphan")
+    studentGoals = relationship("StudentGoal", back_populates="student", cascade="all, delete-orphan")
+    academicMentorAudits = relationship("AcademicMentorAudit", foreign_keys="[AcademicMentorAudit.actorId]", back_populates="actor")
+    academicMentorStudentAudits = relationship("AcademicMentorAudit", foreign_keys="[AcademicMentorAudit.studentId]", back_populates="student")
 
 
 
@@ -380,6 +391,10 @@ class Subject(Base):
     subjectAssignments = relationship("Assignment", back_populates="subject", cascade="all, delete-orphan")
     subjectExams = relationship("Exam", back_populates="subject", cascade="all, delete-orphan")
     resultDetails = relationship("ResultDetail", back_populates="subject", cascade="all, delete-orphan")
+    academicInsights = relationship("AcademicInsight", back_populates="subject", cascade="all, delete-orphan")
+    studyRecommendations = relationship("StudyRecommendation", back_populates="subject", cascade="all, delete-orphan")
+    studyPlanItems = relationship("StudyPlanItem", back_populates="subject", cascade="all, delete-orphan")
+    studentGoals = relationship("StudentGoal", back_populates="subject", cascade="all, delete-orphan")
 
 class Building(Base):
     __tablename__ = "Building"
@@ -3236,3 +3251,184 @@ class CommunicationAudit(Base):
     createdAt = Column(DateTime, default=datetime.utcnow)
 
     actor = relationship("User", back_populates="communicationAudits")
+
+
+class AcademicMentorProfile(Base):
+    __tablename__ = "AcademicMentorProfile"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    studentId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), unique=True, nullable=False)
+    engineType = Column(String(191), nullable=False)
+    dataCompleteness = Column(Float, nullable=False)
+    lastCalculatedAt = Column(DateTime, default=datetime.utcnow, nullable=False)
+    currentRiskLevel = Column(String(191), nullable=False)  # LOW, MODERATE, HIGH, CRITICAL, INSUFFICIENT_DATA
+    currentRiskScore = Column(Float, default=0.0, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    student = relationship("User", back_populates="academicMentorProfile")
+
+
+class AcademicInsight(Base):
+    __tablename__ = "AcademicInsight"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    studentId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    type = Column(String(191), nullable=False)  # STRENGTH, WEAKNESS, TREND, ATTENDANCE, PERFORMANCE, DEADLINE, CONSISTENCY, IMPROVEMENT
+    title = Column(String(191), nullable=False)
+    summary = Column(Text, nullable=False)
+    severity = Column(String(191), nullable=False)  # INFO, LOW, MEDIUM, HIGH
+    subjectId = Column(String(191), ForeignKey("Subject.id", ondelete="SET NULL"), nullable=True)
+    evidenceJson = Column(Text, nullable=True)
+    generatedBy = Column(String(191), nullable=False)
+    validFrom = Column(DateTime, default=datetime.utcnow, nullable=False)
+    validUntil = Column(DateTime, nullable=True)
+    dismissedAt = Column(DateTime, nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    student = relationship("User", back_populates="academicInsights")
+    subject = relationship("Subject", back_populates="academicInsights")
+
+
+class AcademicRiskAssessment(Base):
+    __tablename__ = "AcademicRiskAssessment"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    studentId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    score = Column(Float, nullable=False)
+    level = Column(String(191), nullable=False)  # LOW, MODERATE, HIGH, CRITICAL, INSUFFICIENT_DATA
+    dataCompleteness = Column(Float, nullable=False)
+    engineType = Column(String(191), nullable=False)
+    explanation = Column(Text, nullable=False)
+    assessedAt = Column(DateTime, default=datetime.utcnow, nullable=False)
+    expiresAt = Column(DateTime, nullable=True)
+    version = Column(Integer, default=1, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    student = relationship("User", back_populates="academicRiskAssessments")
+    factors = relationship("AcademicRiskFactor", back_populates="assessment", cascade="all, delete-orphan")
+
+
+class AcademicRiskFactor(Base):
+    __tablename__ = "AcademicRiskFactor"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    assessmentId = Column(String(191), ForeignKey("AcademicRiskAssessment.id", ondelete="CASCADE"), nullable=False)
+    factorCode = Column(String(191), nullable=False)
+    factorName = Column(String(191), nullable=False)
+    observedValue = Column(String(191), nullable=False)
+    normalizedValue = Column(Float, nullable=False)
+    weight = Column(Float, nullable=False)
+    contribution = Column(Float, nullable=False)
+    direction = Column(String(191), nullable=False)
+    explanation = Column(Text, nullable=False)
+    sourceType = Column(String(191), nullable=False)
+
+    assessment = relationship("AcademicRiskAssessment", back_populates="factors")
+
+
+class StudyRecommendation(Base):
+    __tablename__ = "StudyRecommendation"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    studentId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    subjectId = Column(String(191), ForeignKey("Subject.id", ondelete="SET NULL"), nullable=True)
+    category = Column(String(191), nullable=False)  # REVISION, ATTENDANCE, ASSIGNMENT, EXAM_PREPARATION, TIME_MANAGEMENT, SUBJECT_SUPPORT, GOAL_PROGRESS
+    title = Column(String(191), nullable=False)
+    description = Column(Text, nullable=False)
+    priority = Column(String(191), nullable=False)  # LOW, MEDIUM, HIGH, CRITICAL
+    reason = Column(Text, nullable=False)
+    status = Column(String(191), default="ACTIVE", nullable=False)  # ACTIVE, ACCEPTED, DISMISSED, COMPLETED, EXPIRED
+    generatedBy = Column(String(191), nullable=False)
+    acceptedAt = Column(DateTime, nullable=True)
+    dismissedAt = Column(DateTime, nullable=True)
+    completedAt = Column(DateTime, nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    student = relationship("User", back_populates="studyRecommendations")
+    subject = relationship("Subject", back_populates="studyRecommendations")
+
+
+class StudyPlan(Base):
+    __tablename__ = "StudyPlan"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    studentId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    title = Column(String(191), nullable=False)
+    description = Column(Text, nullable=True)
+    startDate = Column(DateTime, nullable=False)
+    endDate = Column(DateTime, nullable=False)
+    status = Column(String(191), default="DRAFT", nullable=False)  # DRAFT, ACTIVE, COMPLETED, CANCELLED
+    generatedFromRecommendationId = Column(String(191), nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    student = relationship("User", back_populates="studyPlans")
+    items = relationship("StudyPlanItem", back_populates="studyPlan", cascade="all, delete-orphan")
+
+
+class StudyPlanItem(Base):
+    __tablename__ = "StudyPlanItem"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    studyPlanId = Column(String(191), ForeignKey("StudyPlan.id", ondelete="CASCADE"), nullable=False)
+    subjectId = Column(String(191), ForeignKey("Subject.id", ondelete="SET NULL"), nullable=True)
+    title = Column(String(191), nullable=False)
+    description = Column(Text, nullable=True)
+    scheduledDate = Column(DateTime, nullable=False)
+    estimatedMinutes = Column(Integer, default=30, nullable=False)
+    status = Column(String(191), default="PENDING", nullable=False)  # PENDING, IN_PROGRESS, COMPLETED, SKIPPED
+    completedAt = Column(DateTime, nullable=True)
+    orderIndex = Column(Integer, default=0, nullable=False)
+
+    studyPlan = relationship("StudyPlan", back_populates="items")
+    subject = relationship("Subject", back_populates="studyPlanItems")
+
+
+class StudentGoal(Base):
+    __tablename__ = "StudentGoal"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    studentId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    subjectId = Column(String(191), ForeignKey("Subject.id", ondelete="SET NULL"), nullable=True)
+    title = Column(String(191), nullable=False)
+    targetType = Column(String(191), nullable=False)  # GPA, ATTENDANCE, MARKS, STUDY_TIME, OTHER
+    targetValue = Column(Float, nullable=False)
+    currentValue = Column(Float, nullable=True)
+    deadline = Column(DateTime, nullable=True)
+    status = Column(String(191), default="ACTIVE", nullable=False)  # ACTIVE, COMPLETED, ABANDONED
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    student = relationship("User", back_populates="studentGoals")
+    subject = relationship("Subject", back_populates="studentGoals")
+
+
+class MentorIntervention(Base):
+    __tablename__ = "MentorIntervention"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    studentId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    initiatedById = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    assignedToId = Column(String(191), ForeignKey("User.id", ondelete="SET NULL"), nullable=True)
+    type = Column(String(191), nullable=False)  # ACADEMIC_PROBATION, TUTORING, ATTENDANCE_REVIEW, COUNSELING, EXAM_PREP_PLAN, OTHER
+    reason = Column(Text, nullable=False)
+    status = Column(String(191), default="OPEN", nullable=False)  # OPEN, IN_PROGRESS, RESOLVED, CANCELLED
+    notes = Column(Text, nullable=True)
+    dueAt = Column(DateTime, nullable=True)
+    resolvedAt = Column(DateTime, nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    student = relationship("User", foreign_keys=[studentId], back_populates="mentorInterventionsStudent")
+    initiator = relationship("User", foreign_keys=[initiatedById], back_populates="mentorInterventionsInitiated")
+    assignee = relationship("User", foreign_keys=[assignedToId], back_populates="mentorInterventionsAssigned")
+
+
+class AcademicMentorAudit(Base):
+    __tablename__ = "AcademicMentorAudit"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    actorId = Column(String(191), ForeignKey("User.id", ondelete="SET NULL"), nullable=True)
+    studentId = Column(String(191), ForeignKey("User.id", ondelete="SET NULL"), nullable=True)
+    action = Column(String(191), nullable=False)
+    entityType = Column(String(191), nullable=False)
+    entityId = Column(String(191), nullable=True)
+    actionMetadata = Column(Text, nullable=True)
+    ipAddress = Column(String(191), nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    actor = relationship("User", foreign_keys=[actorId], back_populates="academicMentorAudits")
+    student = relationship("User", foreign_keys=[studentId], back_populates="academicMentorStudentAudits")

@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import health, auth, users, sessions, audits, academics, students, faculties, timetables, attendances, qr_attendances, faces, assignments, exams, results, admissions, fees, parents, library, hostel, transport, parent_portal, notifications
+from app.api.v1.endpoints import health, auth, users, sessions, audits, academics, students, faculties, timetables, attendances, qr_attendances, faces, assignments, exams, results, admissions, fees, parents, library, hostel, transport, parent_portal, notifications, academic_mentor
 
 api_router = APIRouter()
 api_router.include_router(health.router, prefix="/health", tags=["System Health"])
@@ -55,6 +55,9 @@ api_router.include_router(transport.router, prefix="/transport", tags=["Smart Tr
 
 # Enterprise Notification Router
 api_router.include_router(notifications.router, prefix="/notifications", tags=["Enterprise Notifications"])
+
+# Academic Mentor Router
+api_router.include_router(academic_mentor.router, prefix="/academic-mentor", tags=["Academic Mentor & Student Intelligence"])
 
 # Academic Structure Routers
 api_router.include_router(academics.academic_years_router, prefix="/academic-years", tags=["Academic Years"])

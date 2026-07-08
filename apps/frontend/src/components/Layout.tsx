@@ -1,25 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { 
-  Box, 
-  Drawer, 
-  AppBar, 
-  Toolbar, 
-  Typography, 
-  List, 
-  ListItem, 
-  ListItemButton, 
-  ListItemIcon, 
-  ListItemText, 
-  IconButton, 
+import {
+  Box,
+  Drawer,
+  AppBar,
+  Toolbar,
+  Typography,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  IconButton,
   Divider,
   Button
 } from '@mui/material';
-import { 
-  Menu as MenuIcon, 
-  Dashboard as DashboardIcon, 
-  PersonAdd as PersonAddIcon, 
-  People as PeopleIcon, 
+import {
+  Menu as MenuIcon,
+  Dashboard as DashboardIcon,
+  PersonAdd as PersonAddIcon,
+  People as PeopleIcon,
   ExitToApp as ExitIcon,
   School as SchoolIcon,
   CalendarToday as CalendarTodayIcon,
@@ -36,7 +36,8 @@ import {
   Home as HostelIcon,
   DirectionsBus as TransportIcon,
   Campaign as CampaignIcon,
-  Notifications as NotificationsIcon
+  Notifications as NotificationsIcon,
+  Psychology as PsychologyIcon
 } from '@mui/icons-material';
 import { NotificationBell } from './NotificationBell';
 
@@ -121,6 +122,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       { text: 'Transport Portal', icon: <TransportIcon />, path: '/transport-dashboard' },
       { text: 'Parent Portal', icon: <ParentIcon />, path: '/parent-dashboard' },
       { text: 'Communication', icon: <CampaignIcon />, path: '/communication-dashboard' },
+      { text: 'Academic Mentor Admin', icon: <PsychologyIcon />, path: '/admin/academic-intelligence' },
       { text: 'Notifications', icon: <NotificationsIcon />, path: '/notifications' }
     );
   } else if (user?.role === 'STUDENT') {
@@ -128,6 +130,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       { text: 'Overview', icon: <DashboardIcon />, path: '/' },
       { text: 'Student Portal', icon: <SchoolIcon />, path: '/student-dashboard' },
       { text: 'Academics', icon: <SchoolIcon />, path: '/academics' },
+      { text: 'Academic Mentor', icon: <PsychologyIcon />, path: '/academic-mentor' },
       { text: 'Timetables', icon: <CalendarTodayIcon />, path: '/timetable-dashboard' },
       { text: 'Attendance', icon: <CheckCircleIcon />, path: '/attendance-dashboard' },
       { text: 'QR Scanner', icon: <QrCodeIcon />, path: '/qr-attendance-dashboard' },
@@ -146,6 +149,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       { text: 'Overview', icon: <DashboardIcon />, path: '/' },
       { text: 'Faculty Portal', icon: <SchoolIcon />, path: '/faculty-dashboard' },
       { text: 'Academics', icon: <SchoolIcon />, path: '/academics' },
+      { text: 'Mentoring Directory', icon: <PsychologyIcon />, path: '/mentor/students' },
       { text: 'Timetables', icon: <CalendarTodayIcon />, path: '/timetable-dashboard' },
       { text: 'Attendance', icon: <CheckCircleIcon />, path: '/attendance-dashboard' },
       { text: 'QR Scanner', icon: <QrCodeIcon />, path: '/qr-attendance-dashboard' },
@@ -168,6 +172,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     menuItems.push(
       { text: 'Overview', icon: <DashboardIcon />, path: '/' },
       { text: 'Parent Portal', icon: <ParentIcon />, path: '/parent-dashboard' },
+      { text: 'Academic Insights', icon: <PsychologyIcon />, path: '/parent/academic-insights' },
       { text: 'Transport Portal', icon: <TransportIcon />, path: '/transport-dashboard' },
       { text: 'Notifications', icon: <NotificationsIcon />, path: '/notifications' }
     );
@@ -191,12 +196,12 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       <List sx={{ px: 2, py: 3, flexGrow: 1 }}>
         {menuItems.map((item) => (
           <ListItem key={item.text} disablePadding sx={{ mb: 1 }}>
-            <ListItemButton 
+            <ListItemButton
               onClick={() => {
                 navigate(item.path);
                 setMobileOpen(false);
               }}
-              sx={{ 
+              sx={{
                 borderRadius: 2,
                 bgcolor: location.pathname === item.path ? 'rgba(0, 112, 243, 0.08)' : 'transparent',
                 '&:hover': { bgcolor: 'rgba(0, 112, 243, 0.08)' }
@@ -205,17 +210,17 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               <ListItemIcon sx={{ color: location.pathname === item.path ? 'primary.main' : 'text.secondary', minWidth: 40 }}>
                 {item.icon}
               </ListItemIcon>
-              <ListItemText 
-                primary={item.text} 
+              <ListItemText
+                primary={item.text}
                 primaryTypographyProps={{ fontSize: 14, fontWeight: 500, color: location.pathname === item.path ? 'primary.main' : 'inherit' }}
               />
             </ListItemButton>
           </ListItem>
         ))}
       </List>
-      
+
       <Divider />
-      
+
       {/* User Card info & Logout */}
       {user && (
         <Box sx={{ p: 2 }}>
@@ -223,10 +228,10 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>{user.name}</Typography>
             <Typography variant="caption" color="text.secondary" noWrap>{user.email}</Typography>
           </Box>
-          <Button 
-            variant="outlined" 
-            color="error" 
-            fullWidth 
+          <Button
+            variant="outlined"
+            color="error"
+            fullWidth
             startIcon={<ExitIcon />}
             onClick={handleLogout}
             size="small"
@@ -240,9 +245,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
-      <AppBar 
-        position="fixed" 
-        sx={{ 
+      <AppBar
+        position="fixed"
+        sx={{
           width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
           ml: { md: `${DRAWER_WIDTH}px` },
           bgcolor: 'rgba(2, 6, 23, 0.75)',
@@ -297,9 +302,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
       <Box
         component="main"
-        sx={{ 
-          flexGrow: 1, 
-          p: 4, 
+        sx={{
+          flexGrow: 1,
+          p: 4,
           width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
           mt: '64px',
           minHeight: 'calc(100vh - 64px)',

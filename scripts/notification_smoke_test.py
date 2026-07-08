@@ -198,8 +198,7 @@ def run_smoke_test():
     # Summary
     passed_cnt = sum(1 for c in checks if c["passed"])
     total_cnt = len(checks)
-    print(f"
-Smoke Test Summary: {passed_cnt}/{total_cnt} checks passed.")
+    print(f"Smoke Test Summary: {passed_cnt}/{total_cnt} checks passed.")
     if passed_cnt == total_cnt:
         print("SUCCESS: Notification system smoke test passed successfully.")
     else:
