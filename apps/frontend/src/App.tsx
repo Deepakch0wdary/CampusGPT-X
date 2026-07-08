@@ -47,6 +47,10 @@ import MentorStudentDashboard from './pages/MentorStudentDashboard';
 import ParentAcademicInsights from './pages/ParentAcademicInsights';
 import AcademicIntelligenceAdmin from './pages/AcademicIntelligenceAdmin';
 import InterventionManager from './pages/InterventionManager';
+import PlacementDashboard from './pages/PlacementDashboard';
+import PlacementOpportunities from './pages/PlacementOpportunities';
+import PlacementAdmin from './pages/PlacementAdmin';
+
 
 // Intercept all API calls to catch 401 Unauthorized errors and clear stale sessions
 const originalFetch = window.fetch;
@@ -269,6 +273,22 @@ const App: React.FC = () => {
                 <AcademicMentorDashboard />
               </PrivateRoute>
             } />
+            <Route path="/placements" element={
+              <PrivateRoute>
+                <PlacementDashboard />
+              </PrivateRoute>
+            } />
+            <Route path="/placements/opportunities" element={
+              <PrivateRoute>
+                <PlacementOpportunities />
+              </PrivateRoute>
+            } />
+            <Route path="/placements/admin" element={
+              <AdminRoute>
+                <PlacementAdmin />
+              </AdminRoute>
+            } />
+
             <Route path="/academic-mentor/insights" element={
               <PrivateRoute>
                 <AcademicInsights />

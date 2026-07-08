@@ -202,7 +202,23 @@ class User(Base):
     studentGoals = relationship("StudentGoal", back_populates="student", cascade="all, delete-orphan")
     academicMentorAudits = relationship("AcademicMentorAudit", foreign_keys="[AcademicMentorAudit.actorId]", back_populates="actor")
     academicMentorStudentAudits = relationship("AcademicMentorAudit", foreign_keys="[AcademicMentorAudit.studentId]", back_populates="student")
-
+    # Day 22 — Placement & Career Intelligence
+    careerProfile = relationship("CareerProfile", uselist=False, back_populates="student", cascade="all, delete-orphan")
+    studentSkills = relationship("StudentSkill", back_populates="student", cascade="all, delete-orphan")
+    resumeProfiles = relationship("ResumeProfile", back_populates="student", cascade="all, delete-orphan")
+    eligibilityEvaluations = relationship("EligibilityEvaluation", back_populates="student", cascade="all, delete-orphan")
+    driveRegistrations = relationship("DriveRegistration", back_populates="student", cascade="all, delete-orphan")
+    jobApplications = relationship("JobApplication", back_populates="student", cascade="all, delete-orphan")
+    applicationStatusChanges = relationship("ApplicationStatusHistory", back_populates="changedBy", cascade="all, delete-orphan")
+    interviewFeedbacksGiven = relationship("InterviewFeedback", back_populates="interviewer")
+    offers = relationship("Offer", back_populates="student", cascade="all, delete-orphan")
+    placementOutcomes = relationship("PlacementOutcome", back_populates="student", cascade="all, delete-orphan")
+    careerGoals = relationship("CareerGoal", back_populates="student", cascade="all, delete-orphan")
+    skillGapAnalyses = relationship("SkillGapAnalysis", back_populates="student", cascade="all, delete-orphan")
+    careerRecommendations = relationship("CareerRecommendation", back_populates="student", cascade="all, delete-orphan")
+    jobMatchScores = relationship("JobMatchScore", back_populates="student", cascade="all, delete-orphan")
+    placementAuditsActor = relationship("PlacementAudit", foreign_keys="[PlacementAudit.actorId]", back_populates="actor")
+    placementAuditsStudent = relationship("PlacementAudit", foreign_keys="[PlacementAudit.studentId]", back_populates="student_audit")
 
 
 class UserProfile(Base):
@@ -3432,3 +3448,404 @@ class AcademicMentorAudit(Base):
 
     actor = relationship("User", foreign_keys=[actorId], back_populates="academicMentorAudits")
     student = relationship("User", foreign_keys=[studentId], back_populates="academicMentorStudentAudits")
+
+
+# ============================================================
+# DAY 22 — ENTERPRISE PLACEMENT & CAREER INTELLIGENCE SYSTEM
+# ============================================================
+
+class CareerProfile(Base):
+    __tablename__ = "CareerProfile"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    studentId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), unique=True, nullable=False)
+    graduationYear = Column(Integer, nullable=False)
+    status = Column(String(191), default="ACTIVE", nullable=False)  # ACTIVE, PLACED, OPTED_OUT
+    biography = Column(Text, nullable=True)
+    certifications = Column(Text, nullable=True)
+    projects = Column(Text, nullable=True)
+    experience = Column(Text, nullable=True)
+    linkedinUrl = Column(String(191), nullable=True)
+    githubUrl = Column(String(191), nullable=True)
+    portfolioUrl = Column(String(191), nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    student = relationship("User", back_populates="careerProfile")
+
+
+class SkillCatalog(Base):
+    __tablename__ = "SkillCatalog"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    name = Column(String(191), unique=True, nullable=False)
+    category = Column(String(191), nullable=False)  # TECHNICAL, SOFT_SKILL, DOMAIN, TOOL
+    description = Column(Text, nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    studentSkills = relationship("StudentSkill", back_populates="skill", cascade="all, delete-orphan")
+    oppSkills = relationship("OpportunitySkill", back_populates="skill", cascade="all, delete-orphan")
+
+
+class StudentSkill(Base):
+    __tablename__ = "StudentSkill"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    studentId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    skillId = Column(String(191), ForeignKey("SkillCatalog.id", ondelete="CASCADE"), nullable=False)
+    proficiency = Column(String(191), default="BEGINNER", nullable=False)  # BEGINNER, INTERMEDIATE, ADVANCED, EXPERT
+    yearsOfExperience = Column(Float, default=0.0, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (UniqueConstraint("studentId", "skillId", name="StudentSkill_studentId_skillId_key"),)
+
+    student = relationship("User", back_populates="studentSkills")
+    skill = relationship("SkillCatalog", back_populates="studentSkills")
+
+
+class ResumeProfile(Base):
+    __tablename__ = "ResumeProfile"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    studentId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    title = Column(String(191), nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    student = relationship("User", back_populates="resumeProfiles")
+    versions = relationship("ResumeVersion", back_populates="resumeProfile", cascade="all, delete-orphan")
+
+
+class ResumeVersion(Base):
+    __tablename__ = "ResumeVersion"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    resumeProfileId = Column(String(191), ForeignKey("ResumeProfile.id", ondelete="CASCADE"), nullable=False)
+    versionNumber = Column(Integer, default=1, nullable=False)
+    fileUrl = Column(String(191), nullable=False)
+    status = Column(String(191), default="DRAFT", nullable=False)  # DRAFT, ACTIVE
+    isActive = Column(Boolean, default=False, nullable=False)
+    summary = Column(Text, nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    resumeProfile = relationship("ResumeProfile", back_populates="versions")
+    applications = relationship("JobApplication", back_populates="resumeVersion")
+
+
+class Company(Base):
+    __tablename__ = "Company"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    name = Column(String(191), unique=True, nullable=False)
+    industry = Column(String(191), nullable=False)
+    website = Column(String(191), nullable=True)
+    description = Column(Text, nullable=True)
+    logoUrl = Column(String(191), nullable=True)
+    hrEmail = Column(String(191), nullable=True)
+    status = Column(String(191), default="ACTIVE", nullable=False)  # ACTIVE, INACTIVE
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    recruiterContacts = relationship("RecruiterContact", back_populates="company", cascade="all, delete-orphan")
+    opportunities = relationship("Opportunity", back_populates="company", cascade="all, delete-orphan")
+    placementDrives = relationship("PlacementDrive", back_populates="company", cascade="all, delete-orphan")
+
+
+class RecruiterContact(Base):
+    __tablename__ = "RecruiterContact"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    companyId = Column(String(191), ForeignKey("Company.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String(191), nullable=False)
+    email = Column(String(191), unique=True, nullable=False)
+    phone = Column(String(191), nullable=True)
+    designation = Column(String(191), nullable=True)
+    linkedinUrl = Column(String(191), nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    company = relationship("Company", back_populates="recruiterContacts")
+
+
+class PlacementDrive(Base):
+    __tablename__ = "PlacementDrive"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    companyId = Column(String(191), ForeignKey("Company.id", ondelete="CASCADE"), nullable=False)
+    title = Column(String(191), nullable=False)
+    description = Column(Text, nullable=True)
+    startDate = Column(DateTime, nullable=False)
+    endDate = Column(DateTime, nullable=False)
+    status = Column(String(191), default="UPCOMING", nullable=False)  # UPCOMING, ACTIVE, COMPLETED, CANCELLED
+    venue = Column(String(191), nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    company = relationship("Company", back_populates="placementDrives")
+    registrations = relationship("DriveRegistration", back_populates="drive", cascade="all, delete-orphan")
+    opportunities = relationship("Opportunity", back_populates="drive")
+
+
+class Opportunity(Base):
+    __tablename__ = "Opportunity"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    companyId = Column(String(191), ForeignKey("Company.id", ondelete="CASCADE"), nullable=False)
+    driveId = Column(String(191), ForeignKey("PlacementDrive.id", ondelete="SET NULL"), nullable=True)
+    title = Column(String(191), nullable=False)
+    description = Column(Text, nullable=False)
+    type = Column(String(191), nullable=False)  # JOB, INTERNSHIP
+    roleType = Column(String(191), default="FULL_TIME", nullable=False)  # FULL_TIME, PART_TIME, CONTRACT
+    location = Column(String(191), nullable=False)
+    compensation = Column(String(191), nullable=False)
+    minCgpa = Column(Float, default=0.0, nullable=False)
+    maxBacklogs = Column(Integer, default=999, nullable=False)
+    graduationYear = Column(Integer, nullable=True)
+    allowedDepts = Column(Text, nullable=True)  # JSON array
+    allowedPrograms = Column(Text, nullable=True)  # JSON array
+    requiredSkillTags = Column(Text, nullable=True)  # JSON array
+    deadline = Column(DateTime, nullable=True)
+    status = Column(String(191), default="OPEN", nullable=False)  # OPEN, CLOSED, ARCHIVED
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    company = relationship("Company", back_populates="opportunities")
+    drive = relationship("PlacementDrive", back_populates="opportunities")
+    opportunitySkills = relationship("OpportunitySkill", back_populates="opportunity", cascade="all, delete-orphan")
+    eligibilityRules = relationship("EligibilityRule", back_populates="opportunity", cascade="all, delete-orphan")
+    evaluations = relationship("EligibilityEvaluation", back_populates="opportunity", cascade="all, delete-orphan")
+    applications = relationship("JobApplication", back_populates="opportunity", cascade="all, delete-orphan")
+    matchScores = relationship("JobMatchScore", back_populates="opportunity", cascade="all, delete-orphan")
+
+
+class OpportunitySkill(Base):
+    __tablename__ = "OpportunitySkill"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    opportunityId = Column(String(191), ForeignKey("Opportunity.id", ondelete="CASCADE"), nullable=False)
+    skillId = Column(String(191), ForeignKey("SkillCatalog.id", ondelete="CASCADE"), nullable=False)
+    isRequired = Column(Boolean, default=True, nullable=False)  # True=required, False=preferred
+
+    __table_args__ = (UniqueConstraint("opportunityId", "skillId", name="OpportunitySkill_opportunityId_skillId_key"),)
+
+    opportunity = relationship("Opportunity", back_populates="opportunitySkills")
+    skill = relationship("SkillCatalog", back_populates="oppSkills")
+
+
+class EligibilityRule(Base):
+    __tablename__ = "EligibilityRule"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    opportunityId = Column(String(191), ForeignKey("Opportunity.id", ondelete="CASCADE"), nullable=False)
+    ruleType = Column(String(191), nullable=False)  # MIN_CGPA, MAX_BACKLOGS, ALLOWED_DEPARTMENTS, etc.
+    ruleValue = Column(Text, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    opportunity = relationship("Opportunity", back_populates="eligibilityRules")
+
+
+class EligibilityEvaluation(Base):
+    __tablename__ = "EligibilityEvaluation"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    opportunityId = Column(String(191), ForeignKey("Opportunity.id", ondelete="CASCADE"), nullable=False)
+    studentId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    eligible = Column(Boolean, nullable=False)
+    reasonsJson = Column(Text, nullable=False)
+    failedRulesJson = Column(Text, nullable=False)
+    passedRulesJson = Column(Text, nullable=False)
+    evaluatedAt = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (UniqueConstraint("opportunityId", "studentId", name="EligibilityEvaluation_opportunityId_studentId_key"),)
+
+    opportunity = relationship("Opportunity", back_populates="evaluations")
+    student = relationship("User", back_populates="eligibilityEvaluations")
+
+
+class DriveRegistration(Base):
+    __tablename__ = "DriveRegistration"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    driveId = Column(String(191), ForeignKey("PlacementDrive.id", ondelete="CASCADE"), nullable=False)
+    studentId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    registeredAt = Column(DateTime, default=datetime.utcnow)
+    status = Column(String(191), default="REGISTERED", nullable=False)  # REGISTERED, APPROVED, REJECTED
+
+    __table_args__ = (UniqueConstraint("driveId", "studentId", name="DriveRegistration_driveId_studentId_key"),)
+
+    drive = relationship("PlacementDrive", back_populates="registrations")
+    student = relationship("User", back_populates="driveRegistrations")
+
+
+class JobApplication(Base):
+    __tablename__ = "JobApplication"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    opportunityId = Column(String(191), ForeignKey("Opportunity.id", ondelete="CASCADE"), nullable=False)
+    studentId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    resumeVersionId = Column(String(191), ForeignKey("ResumeVersion.id", ondelete="SET NULL"), nullable=True)
+    status = Column(String(191), default="APPLIED", nullable=False)  # APPLIED, SHORTLISTED, REJECTED, OFFERED, ACCEPTED, DECLINED
+    coverLetter = Column(Text, nullable=True)
+    appliedAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (UniqueConstraint("opportunityId", "studentId", name="JobApplication_opportunityId_studentId_key"),)
+
+    opportunity = relationship("Opportunity", back_populates="applications")
+    student = relationship("User", back_populates="jobApplications")
+    resumeVersion = relationship("ResumeVersion", back_populates="applications")
+    statusHistory = relationship("ApplicationStatusHistory", back_populates="application", cascade="all, delete-orphan")
+    interviewRounds = relationship("InterviewRound", back_populates="application", cascade="all, delete-orphan")
+    offers = relationship("Offer", back_populates="application", cascade="all, delete-orphan")
+
+
+class ApplicationStatusHistory(Base):
+    __tablename__ = "ApplicationStatusHistory"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    applicationId = Column(String(191), ForeignKey("JobApplication.id", ondelete="CASCADE"), nullable=False)
+    status = Column(String(191), nullable=False)
+    notes = Column(Text, nullable=True)
+    changedById = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    changedAt = Column(DateTime, default=datetime.utcnow)
+
+    application = relationship("JobApplication", back_populates="statusHistory")
+    changedBy = relationship("User", back_populates="applicationStatusChanges")
+
+
+class InterviewRound(Base):
+    __tablename__ = "InterviewRound"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    applicationId = Column(String(191), ForeignKey("JobApplication.id", ondelete="CASCADE"), nullable=False)
+    roundNumber = Column(Integer, default=1, nullable=False)
+    title = Column(String(191), nullable=False)
+    type = Column(String(191), nullable=False)  # CODING, TECHNICAL, HR, GD, OTHER
+    status = Column(String(191), default="SCHEDULED", nullable=False)  # SCHEDULED, COMPLETED, CANCELLED, NO_SHOW
+    result = Column(String(191), default="PENDING", nullable=False)  # PENDING, PASSED, FAILED
+    scheduledAt = Column(DateTime, nullable=True)
+    location = Column(String(191), nullable=True)
+    interviewerNames = Column(String(191), nullable=True)
+    durationMinutes = Column(Integer, default=60, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    application = relationship("JobApplication", back_populates="interviewRounds")
+    feedbacks = relationship("InterviewFeedback", back_populates="interviewRound", cascade="all, delete-orphan")
+
+
+class InterviewFeedback(Base):
+    __tablename__ = "InterviewFeedback"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    interviewRoundId = Column(String(191), ForeignKey("InterviewRound.id", ondelete="CASCADE"), nullable=False)
+    interviewerId = Column(String(191), ForeignKey("User.id", ondelete="SET NULL"), nullable=True)
+    rating = Column(Integer, nullable=True)
+    notes = Column(Text, nullable=True)
+    privateNotes = Column(Text, nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    interviewRound = relationship("InterviewRound", back_populates="feedbacks")
+    interviewer = relationship("User", back_populates="interviewFeedbacksGiven")
+
+
+class Offer(Base):
+    __tablename__ = "Offer"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    applicationId = Column(String(191), ForeignKey("JobApplication.id", ondelete="CASCADE"), nullable=False)
+    studentId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    packageAmount = Column(Float, nullable=False)
+    offerLetterUrl = Column(String(191), nullable=True)
+    status = Column(String(191), default="PENDING", nullable=False)  # PENDING, ACCEPTED, DECLINED, EXPIRED
+    joiningDate = Column(DateTime, nullable=True)
+    deadline = Column(DateTime, nullable=False)
+    notes = Column(Text, nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    application = relationship("JobApplication", back_populates="offers")
+    student = relationship("User", back_populates="offers")
+    outcome = relationship("PlacementOutcome", uselist=False, back_populates="offer", cascade="all, delete-orphan")
+
+
+class PlacementOutcome(Base):
+    __tablename__ = "PlacementOutcome"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    studentId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    offerId = Column(String(191), ForeignKey("Offer.id", ondelete="CASCADE"), unique=True, nullable=False)
+    status = Column(String(191), default="PLACED", nullable=False)  # PLACED, JOINED, RENEGADE
+    placedAt = Column(DateTime, default=datetime.utcnow)
+    notes = Column(Text, nullable=True)
+
+    student = relationship("User", back_populates="placementOutcomes")
+    offer = relationship("Offer", back_populates="outcome")
+
+
+class CareerGoal(Base):
+    __tablename__ = "CareerGoal"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    studentId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    title = Column(String(191), nullable=False)
+    targetTimeline = Column(String(191), nullable=True)
+    targetRole = Column(String(191), nullable=True)
+    targetIndustry = Column(String(191), nullable=True)
+    status = Column(String(191), default="ACTIVE", nullable=False)  # ACTIVE, COMPLETED, ABANDONED
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    student = relationship("User", back_populates="careerGoals")
+
+
+class SkillGapAnalysis(Base):
+    __tablename__ = "SkillGapAnalysis"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    studentId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    goalTitle = Column(String(191), nullable=False)
+    opportunityId = Column(String(191), nullable=True)
+    readinessScore = Column(Float, default=0.0, nullable=False)
+    matchedSkillsJson = Column(Text, nullable=False, default="[]")
+    missingCriticalSkillsJson = Column(Text, nullable=False, default="[]")
+    missingOptionalSkillsJson = Column(Text, nullable=False, default="[]")
+    learningActionsJson = Column(Text, nullable=False, default="[]")
+    engineType = Column(String(191), default="RULE_BASED_SKILL_GAP_ANALYSIS", nullable=False)
+    calculatedAt = Column(DateTime, default=datetime.utcnow)
+
+    student = relationship("User", back_populates="skillGapAnalyses")
+
+
+class CareerRecommendation(Base):
+    __tablename__ = "CareerRecommendation"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    studentId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    category = Column(String(191), nullable=False)  # SKILL_UPGRADE, RESUME_TWEAK, OPPORTUNITY, GOAL_ADJUSTMENT
+    title = Column(String(191), nullable=False)
+    description = Column(Text, nullable=False)
+    priority = Column(String(191), default="MEDIUM", nullable=False)  # LOW, MEDIUM, HIGH, CRITICAL
+    status = Column(String(191), default="ACTIVE", nullable=False)  # ACTIVE, ACCEPTED, DISMISSED, COMPLETED
+    reason = Column(Text, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    student = relationship("User", back_populates="careerRecommendations")
+
+
+class JobMatchScore(Base):
+    __tablename__ = "JobMatchScore"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    studentId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    opportunityId = Column(String(191), ForeignKey("Opportunity.id", ondelete="CASCADE"), nullable=False)
+    score = Column(Float, default=0.0, nullable=False)
+    engineType = Column(String(191), default="LOCAL_EXPLAINABLE_CAREER_MATCHING", nullable=False)
+    factorsJson = Column(Text, nullable=False, default="[]")
+    matchedSkillsJson = Column(Text, nullable=False, default="[]")
+    missingSkillsJson = Column(Text, nullable=False, default="[]")
+    eligibilityStatus = Column(String(191), default="UNKNOWN", nullable=False)  # ELIGIBLE, INELIGIBLE, UNKNOWN
+    eligibilityReason = Column(Text, nullable=True)
+    explanation = Column(Text, nullable=False, default="")
+    generatedAt = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (UniqueConstraint("studentId", "opportunityId", name="JobMatchScore_studentId_opportunityId_key"),)
+
+    student = relationship("User", back_populates="jobMatchScores")
+    opportunity = relationship("Opportunity", back_populates="matchScores")
+
+
+class PlacementAudit(Base):
+    __tablename__ = "PlacementAudit"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    actorId = Column(String(191), ForeignKey("User.id", ondelete="SET NULL"), nullable=True)
+    studentId = Column(String(191), ForeignKey("User.id", ondelete="SET NULL"), nullable=True)
+    action = Column(String(191), nullable=False)
+    entityType = Column(String(191), nullable=False)
+    entityId = Column(String(191), nullable=True)
+    actionMetadata = Column(Text, nullable=True)
+    ipAddress = Column(String(191), nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    actor = relationship("User", foreign_keys=[actorId], back_populates="placementAuditsActor")
+    student_audit = relationship("User", foreign_keys=[studentId], back_populates="placementAuditsStudent")

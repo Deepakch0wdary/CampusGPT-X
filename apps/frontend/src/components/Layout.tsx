@@ -37,8 +37,10 @@ import {
   DirectionsBus as TransportIcon,
   Campaign as CampaignIcon,
   Notifications as NotificationsIcon,
-  Psychology as PsychologyIcon
+  Psychology as PsychologyIcon,
+  Work as WorkIcon
 } from '@mui/icons-material';
+
 import { NotificationBell } from './NotificationBell';
 
 const DRAWER_WIDTH = 260;
@@ -123,14 +125,19 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       { text: 'Parent Portal', icon: <ParentIcon />, path: '/parent-dashboard' },
       { text: 'Communication', icon: <CampaignIcon />, path: '/communication-dashboard' },
       { text: 'Academic Mentor Admin', icon: <PsychologyIcon />, path: '/admin/academic-intelligence' },
+      { text: 'Placement Portal', icon: <WorkIcon />, path: '/placements' },
+      { text: 'Placement Admin', icon: <WorkIcon />, path: '/placements/admin' },
       { text: 'Notifications', icon: <NotificationsIcon />, path: '/notifications' }
     );
+
   } else if (user?.role === 'STUDENT') {
     menuItems.push(
       { text: 'Overview', icon: <DashboardIcon />, path: '/' },
       { text: 'Student Portal', icon: <SchoolIcon />, path: '/student-dashboard' },
       { text: 'Academics', icon: <SchoolIcon />, path: '/academics' },
       { text: 'Academic Mentor', icon: <PsychologyIcon />, path: '/academic-mentor' },
+      { text: 'Placement Portal', icon: <WorkIcon />, path: '/placements' },
+
       { text: 'Timetables', icon: <CalendarTodayIcon />, path: '/timetable-dashboard' },
       { text: 'Attendance', icon: <CheckCircleIcon />, path: '/attendance-dashboard' },
       { text: 'QR Scanner', icon: <QrCodeIcon />, path: '/qr-attendance-dashboard' },
@@ -150,6 +157,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       { text: 'Faculty Portal', icon: <SchoolIcon />, path: '/faculty-dashboard' },
       { text: 'Academics', icon: <SchoolIcon />, path: '/academics' },
       { text: 'Mentoring Directory', icon: <PsychologyIcon />, path: '/mentor/students' },
+      { text: 'Placement Portal', icon: <WorkIcon />, path: '/placements' },
+
       { text: 'Timetables', icon: <CalendarTodayIcon />, path: '/timetable-dashboard' },
       { text: 'Attendance', icon: <CheckCircleIcon />, path: '/attendance-dashboard' },
       { text: 'QR Scanner', icon: <QrCodeIcon />, path: '/qr-attendance-dashboard' },
