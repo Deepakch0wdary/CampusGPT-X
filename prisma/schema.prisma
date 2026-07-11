@@ -175,6 +175,14 @@ model User {
   jobMatchScores               JobMatchScore[]
   placementAuditsActor         PlacementAudit[]          @relation("PlacementAuditActor")
   placementAuditsStudent       PlacementAudit[]          @relation("PlacementAuditStudent")
+  // Day 23 — Finance & Fee Management
+  studentHolds                 FinancialHold[]           @relation("StudentHolds")
+  placedHolds                  FinancialHold[]           @relation("PlacedHolds")
+  releasedHolds                FinancialHold[]           @relation("ReleasedHolds")
+  waiversApproved              FeeWaiver[]               @relation("WaiverApprover")
+  feeConcessions               FeeConcession[]           @relation("StudentConcessions")
+  finePenalties                FinePenalty[]             @relation("StudentFines")
+  ledgerEntries                StudentLedgerEntry[]      @relation("StudentLedgerEntries")
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
 
@@ -1518,57 +1526,62 @@ model StudentFeeAssignment {
 }
 
 model FeeInvoice {
-  id                String        @id @default(uuid())
-  invoiceNumber     String        @unique
+  id                String            @id @default(uuid())
+  invoiceNumber     String            @unique
   studentId         String
   enrollmentId      String?
-  currency          String        @default("INR")
-  subtotal          Decimal       @db.Decimal(12, 2)
-  scholarshipAmount Decimal       @db.Decimal(12, 2) @default(0.0)
-  discountAmount    Decimal       @db.Decimal(12, 2) @default(0.0)
-  adjustmentAmount  Decimal       @db.Decimal(12, 2) @default(0.0)
-  taxAmount         Decimal       @db.Decimal(12, 2) @default(0.0)
-  totalAmount       Decimal       @db.Decimal(12, 2)
-  paidAmount        Decimal       @db.Decimal(12, 2) @default(0.0)
-  balanceAmount     Decimal       @db.Decimal(12, 2)
+  currency          String            @default("INR")
+  subtotal          Decimal           @db.Decimal(12, 2)
+  scholarshipAmount Decimal           @db.Decimal(12, 2) @default(0.0)
+  discountAmount    Decimal           @db.Decimal(12, 2) @default(0.0)
+  adjustmentAmount  Decimal           @db.Decimal(12, 2) @default(0.0)
+  taxAmount         Decimal           @db.Decimal(12, 2) @default(0.0)
+  totalAmount       Decimal           @db.Decimal(12, 2)
+  paidAmount        Decimal           @db.Decimal(12, 2) @default(0.0)
+  balanceAmount     Decimal           @db.Decimal(12, 2)
   dueDate           DateTime
-  status            String        @default("DRAFT")
+  status            String            @default("DRAFT")
   issuedAt          DateTime?
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
   items             InvoiceItem[]
   payments          Payment[]
+  installmentPlans  InstallmentPlan[]
+  waivers           FeeWaiver[]
+  fines             FinePenalty[]
 }
 
 model InvoiceItem {
-  id            String     @id @default(uuid())
+  id            String              @id @default(uuid())
   invoiceId     String
-  invoice       FeeInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoice       FeeInvoice          @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   componentName String
   componentCode String
-  amount        Decimal    @db.Decimal(12, 2)
-  description   String?    @db.Text
+  amount        Decimal             @db.Decimal(12, 2)
+  description   String?             @db.Text
+  allocations   PaymentAllocation[]
 }
 
 model Payment {
-  id                String        @id @default(uuid())
-  paymentNumber     String        @unique
+  id                String              @id @default(uuid())
+  paymentNumber     String              @unique
   invoiceId         String
-  invoice           FeeInvoice    @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  invoice           FeeInvoice          @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
   studentId         String
-  amount            Decimal       @db.Decimal(12, 2)
-  currency          String        @default("INR")
+  amount            Decimal             @db.Decimal(12, 2)
+  currency          String              @default("INR")
   method            String
-  status            String        @default("INITIATED")
-  provider          String        @default("MOCK")
+  status            String              @default("INITIATED")
+  provider          String              @default("MOCK")
   providerOrderId   String?
   providerPaymentId String?
-  idempotencyKey    String        @unique
+  idempotencyKey    String              @unique
   paidAt            DateTime?
-  failureReason     String?       @db.Text
-  createdAt         DateTime      @default(now())
+  failureReason     String?             @db.Text
+  createdAt         DateTime            @default(now())
   receipts          Receipt[]
   refunds           Refund[]
+  allocations       PaymentAllocation[]
 }
 
 model WebhookEvent {
@@ -3724,3 +3737,139 @@ model PlacementAudit {
   @@index([studentId])
   @@index([createdAt])
 }
+
+// Day 23 — Finance & Fee Management models
+
+model FeeCategory {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model InstallmentPlan {
+  id                   String                @id @default(uuid())
+  invoiceId            String
+  invoice              FeeInvoice            @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  name                 String
+  numberOfInstallments Int
+  totalAmount          Decimal               @db.Decimal(12, 2)
+  status               String                @default("ACTIVE")
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  schedules            InstallmentSchedule[]
+
+  @@index([invoiceId])
+}
+
+model InstallmentSchedule {
+  id                 String          @id @default(uuid())
+  installmentPlanId  String
+  plan               InstallmentPlan @relation(fields: [installmentPlanId], references: [id], onDelete: Cascade)
+  installmentNumber  Int
+  dueDate            DateTime
+  amount             Decimal         @db.Decimal(12, 2)
+  paidAmount         Decimal         @db.Decimal(12, 2) @default(0.0)
+  status             String          @default("UNPAID")
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  allocations        PaymentAllocation[]
+
+  @@index([installmentPlanId])
+}
+
+model PaymentAllocation {
+  id                    String               @id @default(uuid())
+  paymentId             String
+  payment               Payment              @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  invoiceItemId         String?
+  invoiceItem           InvoiceItem?         @relation(fields: [invoiceItemId], references: [id], onDelete: Cascade)
+  installmentScheduleId String?
+  installmentSchedule   InstallmentSchedule? @relation(fields: [installmentScheduleId], references: [id], onDelete: SetNull)
+  amount                Decimal              @db.Decimal(12, 2)
+  allocatedAt           DateTime             @default(now())
+
+  @@index([paymentId])
+  @@index([invoiceItemId])
+  @@index([installmentScheduleId])
+}
+
+model FeeConcession {
+  id          String   @id @default(uuid())
+  studentId   String
+  student     User     @relation(name: "StudentConcessions", fields: [studentId], references: [id], onDelete: Cascade)
+  category    String
+  amount      Decimal  @db.Decimal(12, 2)
+  description String?
+  status      String   @default("PENDING")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([studentId])
+}
+
+model FeeWaiver {
+  id         String     @id @default(uuid())
+  invoiceId  String
+  invoice    FeeInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  amount     Decimal    @db.Decimal(12, 2)
+  reason     String
+  approvedBy String?
+  approver   User?      @relation(name: "WaiverApprover", fields: [approvedBy], references: [id])
+  createdAt  DateTime   @default(now())
+
+  @@index([invoiceId])
+  @@index([approvedBy])
+}
+
+model FinePenalty {
+  id        String      @id @default(uuid())
+  studentId String
+  student   User        @relation(name: "StudentFines", fields: [studentId], references: [id], onDelete: Cascade)
+  invoiceId String?
+  invoice   FeeInvoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  amount    Decimal     @db.Decimal(12, 2)
+  reason    String
+  status    String      @default("UNPAID")
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@index([studentId])
+  @@index([invoiceId])
+}
+
+model StudentLedgerEntry {
+  id          String   @id @default(uuid())
+  studentId   String
+  student     User     @relation(name: "StudentLedgerEntries", fields: [studentId], references: [id], onDelete: Cascade)
+  amount      Decimal  @db.Decimal(12, 2)
+  direction   String
+  type        String
+  referenceId String?
+  description String?
+  actorId     String?
+  createdAt   DateTime @default(now())
+
+  @@index([studentId])
+}
+
+model FinancialHold {
+  id            String    @id @default(uuid())
+  studentId     String
+  student       User      @relation(name: "StudentHolds", fields: [studentId], references: [id], onDelete: Cascade)
+  reason        String
+  active        Boolean   @default(true)
+  placedBy      String
+  placer        User      @relation(name: "PlacedHolds", fields: [placedBy], references: [id])
+  placedAt      DateTime  @default(now())
+  releasedBy    String?
+  releaser      User?     @relation(name: "ReleasedHolds", fields: [releasedBy], references: [id])
+  releasedAt    DateTime?
+  releaseReason String?
+
+  @@index([studentId])
+  @@index([placedBy])
+  @@index([releasedBy])
+}
+

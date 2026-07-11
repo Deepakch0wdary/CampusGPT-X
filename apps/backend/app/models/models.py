@@ -220,6 +220,15 @@ class User(Base):
     placementAuditsActor = relationship("PlacementAudit", foreign_keys="[PlacementAudit.actorId]", back_populates="actor")
     placementAuditsStudent = relationship("PlacementAudit", foreign_keys="[PlacementAudit.studentId]", back_populates="student_audit")
 
+    # Day 23 — Finance & Fee Management relationships
+    studentHolds = relationship("FinancialHold", foreign_keys="[FinancialHold.studentId]", back_populates="student", cascade="all, delete-orphan")
+    placedHolds = relationship("FinancialHold", foreign_keys="[FinancialHold.placedBy]", back_populates="placer")
+    releasedHolds = relationship("FinancialHold", foreign_keys="[FinancialHold.releasedBy]", back_populates="releaser")
+    waiversApproved = relationship("FeeWaiver", foreign_keys="[FeeWaiver.approvedBy]", back_populates="approver")
+    feeConcessions = relationship("FeeConcession", foreign_keys="[FeeConcession.studentId]", back_populates="student", cascade="all, delete-orphan")
+    finePenalties = relationship("FinePenalty", foreign_keys="[FinePenalty.studentId]", back_populates="student", cascade="all, delete-orphan")
+    ledgerEntries = relationship("StudentLedgerEntry", foreign_keys="[StudentLedgerEntry.studentId]", back_populates="student", cascade="all, delete-orphan")
+
 
 class UserProfile(Base):
     __tablename__ = "UserProfile"
@@ -1640,6 +1649,9 @@ class FeeInvoice(Base):
 
     items = relationship("InvoiceItem", back_populates="invoice", cascade="all, delete-orphan")
     payments = relationship("Payment", back_populates="invoice", cascade="all, delete")
+    installmentPlans = relationship("InstallmentPlan", back_populates="invoice", cascade="all, delete-orphan")
+    waivers = relationship("FeeWaiver", back_populates="invoice", cascade="all, delete-orphan")
+    fines = relationship("FinePenalty", back_populates="invoice", cascade="all, delete-orphan")
 
 class InvoiceItem(Base):
     __tablename__ = "InvoiceItem"
@@ -1651,6 +1663,7 @@ class InvoiceItem(Base):
     description = Column(Text, nullable=True)
 
     invoice = relationship("FeeInvoice", back_populates="items")
+    allocations = relationship("PaymentAllocation", back_populates="invoiceItem", cascade="all, delete-orphan")
 
 class Payment(Base):
     __tablename__ = "Payment"
@@ -1673,6 +1686,7 @@ class Payment(Base):
     invoice = relationship("FeeInvoice", back_populates="payments")
     receipts = relationship("Receipt", back_populates="payment", cascade="all, delete-orphan")
     refunds = relationship("Refund", back_populates="payment", cascade="all, delete-orphan")
+    allocations = relationship("PaymentAllocation", back_populates="payment", cascade="all, delete-orphan")
 
 class WebhookEvent(Base):
     __tablename__ = "WebhookEvent"
@@ -3849,3 +3863,134 @@ class PlacementAudit(Base):
 
     actor = relationship("User", foreign_keys=[actorId], back_populates="placementAuditsActor")
     student_audit = relationship("User", foreign_keys=[studentId], back_populates="placementAuditsStudent")
+
+
+# Day 23 — Finance & Fee Management models
+
+class FeeCategory(Base):
+    __tablename__ = "FeeCategory"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    name = Column(String(191), unique=True, nullable=False)
+    description = Column(String(191), nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class InstallmentPlan(Base):
+    __tablename__ = "InstallmentPlan"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    invoiceId = Column(String(191), ForeignKey("FeeInvoice.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String(191), nullable=False)
+    numberOfInstallments = Column(Integer, nullable=False)
+    totalAmount = Column(Numeric(12, 2), nullable=False)
+    status = Column(String(191), default="ACTIVE", nullable=False)  # ACTIVE, COMPLETED
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    invoice = relationship("FeeInvoice", back_populates="installmentPlans")
+    schedules = relationship("InstallmentSchedule", back_populates="plan", cascade="all, delete-orphan")
+
+
+class InstallmentSchedule(Base):
+    __tablename__ = "InstallmentSchedule"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    installmentPlanId = Column(String(191), ForeignKey("InstallmentPlan.id", ondelete="CASCADE"), nullable=False)
+    installmentNumber = Column(Integer, nullable=False)
+    dueDate = Column(DateTime, nullable=False)
+    amount = Column(Numeric(12, 2), nullable=False)
+    paidAmount = Column(Numeric(12, 2), default=0.0, nullable=False)
+    status = Column(String(191), default="UNPAID", nullable=False)  # UNPAID, PARTIALLY_PAID, PAID
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    plan = relationship("InstallmentPlan", back_populates="schedules")
+    allocations = relationship("PaymentAllocation", back_populates="installmentSchedule", cascade="all, delete-orphan")
+
+
+class PaymentAllocation(Base):
+    __tablename__ = "PaymentAllocation"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    paymentId = Column(String(191), ForeignKey("Payment.id", ondelete="CASCADE"), nullable=False)
+    invoiceItemId = Column(String(191), ForeignKey("InvoiceItem.id", ondelete="CASCADE"), nullable=True)
+    installmentScheduleId = Column(String(191), ForeignKey("InstallmentSchedule.id", ondelete="SET NULL"), nullable=True)
+    amount = Column(Numeric(12, 2), nullable=False)
+    allocatedAt = Column(DateTime, default=datetime.utcnow)
+
+    payment = relationship("Payment", back_populates="allocations")
+    invoiceItem = relationship("InvoiceItem", back_populates="allocations")
+    installmentSchedule = relationship("InstallmentSchedule", back_populates="allocations")
+
+
+class FeeConcession(Base):
+    __tablename__ = "FeeConcession"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    studentId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    category = Column(String(191), nullable=False)
+    amount = Column(Numeric(12, 2), nullable=False)
+    description = Column(String(191), nullable=True)
+    status = Column(String(191), default="PENDING", nullable=False)  # PENDING, APPROVED, REJECTED
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    student = relationship("User", foreign_keys=[studentId], back_populates="feeConcessions")
+
+
+class FeeWaiver(Base):
+    __tablename__ = "FeeWaiver"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    invoiceId = Column(String(191), ForeignKey("FeeInvoice.id", ondelete="CASCADE"), nullable=False)
+    amount = Column(Numeric(12, 2), nullable=False)
+    reason = Column(String(191), nullable=False)
+    approvedBy = Column(String(191), ForeignKey("User.id"), nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    invoice = relationship("FeeInvoice", back_populates="waivers")
+    approver = relationship("User", foreign_keys=[approvedBy], back_populates="waiversApproved")
+
+
+class FinePenalty(Base):
+    __tablename__ = "FinePenalty"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    studentId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    invoiceId = Column(String(191), ForeignKey("FeeInvoice.id", ondelete="SET NULL"), nullable=True)
+    amount = Column(Numeric(12, 2), nullable=False)
+    reason = Column(String(191), nullable=False)
+    status = Column(String(191), default="UNPAID", nullable=False)  # UNPAID, PAID, WAIVED
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    student = relationship("User", foreign_keys=[studentId], back_populates="finePenalties")
+    invoice = relationship("FeeInvoice", back_populates="fines")
+
+
+class StudentLedgerEntry(Base):
+    __tablename__ = "StudentLedgerEntry"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    studentId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    amount = Column(Numeric(12, 2), nullable=False)
+    direction = Column(String(191), nullable=False)  # DEBIT, CREDIT
+    type = Column(String(191), nullable=False)  # INVOICE, PAYMENT, CONCESSION, WAIVER, FINE, REFUND, ADJUSTMENT
+    referenceId = Column(String(191), nullable=True)
+    description = Column(String(191), nullable=True)
+    actorId = Column(String(191), nullable=True)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+
+    student = relationship("User", foreign_keys=[studentId], back_populates="ledgerEntries")
+
+
+class FinancialHold(Base):
+    __tablename__ = "FinancialHold"
+    id = Column(String(191), primary_key=True, default=generate_uuid)
+    studentId = Column(String(191), ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    reason = Column(String(191), nullable=False)
+    active = Column(Boolean, default=True, nullable=False)
+    placedBy = Column(String(191), ForeignKey("User.id"), nullable=False)
+    placedAt = Column(DateTime, default=datetime.utcnow)
+    releasedBy = Column(String(191), ForeignKey("User.id"), nullable=True)
+    releasedAt = Column(DateTime, nullable=True)
+    releaseReason = Column(String(191), nullable=True)
+
+    student = relationship("User", foreign_keys=[studentId], back_populates="studentHolds")
+    placer = relationship("User", foreign_keys=[placedBy], back_populates="placedHolds")
+    releaser = relationship("User", foreign_keys=[releasedBy], back_populates="releasedHolds")
+

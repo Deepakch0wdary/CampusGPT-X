@@ -51,6 +51,22 @@ import PlacementDashboard from './pages/PlacementDashboard';
 import PlacementOpportunities from './pages/PlacementOpportunities';
 import PlacementAdmin from './pages/PlacementAdmin';
 
+// Day 23 Finance Subpages
+import InvoiceDetails from './pages/InvoiceDetails';
+import MyPayments from './pages/MyPayments';
+import MyReceipts from './pages/MyReceipts';
+import StudentLedger from './pages/StudentLedger';
+import FeeStructureManager from './pages/FeeStructureManager';
+import InvoiceManager from './pages/InvoiceManager';
+import PaymentManager from './pages/PaymentManager';
+import ScholarshipManager from './pages/ScholarshipManager';
+import RefundManager from './pages/RefundManager';
+import FinancialHoldManager from './pages/FinancialHoldManager';
+import FinanceAnalytics from './pages/FinanceAnalytics';
+import ScholarshipPortal from './pages/ScholarshipPortal';
+import MyRefunds from './pages/MyRefunds';
+import MyInvoices from './pages/MyInvoices';
+
 
 // Intercept all API calls to catch 401 Unauthorized errors and clear stale sessions
 const originalFetch = window.fetch;
@@ -229,6 +245,90 @@ const App: React.FC = () => {
             <Route path="/fee-dashboard" element={
               <PrivateRoute>
                 <FeeDashboard />
+              </PrivateRoute>
+            } />
+
+            <Route path="/invoice/:id" element={
+              <PrivateRoute>
+                <InvoiceDetails />
+              </PrivateRoute>
+            } />
+
+            <Route path="/my-invoices" element={
+              <PrivateRoute>
+                <MyInvoices />
+              </PrivateRoute>
+            } />
+
+            <Route path="/my-payments" element={
+              <PrivateRoute>
+                <MyPayments />
+              </PrivateRoute>
+            } />
+
+            <Route path="/my-receipts" element={
+              <PrivateRoute>
+                <MyReceipts />
+              </PrivateRoute>
+            } />
+
+            <Route path="/ledger" element={
+              <PrivateRoute>
+                <StudentLedger />
+              </PrivateRoute>
+            } />
+
+            <Route path="/fee-structures-mgr" element={
+              <PrivateRoute>
+                <FeeStructureManager />
+              </PrivateRoute>
+            } />
+
+            <Route path="/invoices-mgr" element={
+              <PrivateRoute>
+                <InvoiceManager />
+              </PrivateRoute>
+            } />
+
+            <Route path="/payments-mgr" element={
+              <PrivateRoute>
+                <PaymentManager />
+              </PrivateRoute>
+            } />
+
+            <Route path="/scholarships-mgr" element={
+              <PrivateRoute>
+                <ScholarshipManager />
+              </PrivateRoute>
+            } />
+
+            <Route path="/refunds-mgr" element={
+              <PrivateRoute>
+                <RefundManager />
+              </PrivateRoute>
+            } />
+
+            <Route path="/holds-mgr" element={
+              <PrivateRoute>
+                <FinancialHoldManager />
+              </PrivateRoute>
+            } />
+
+            <Route path="/finance-analytics" element={
+              <PrivateRoute>
+                <FinanceAnalytics />
+              </PrivateRoute>
+            } />
+
+            <Route path="/scholarships-portal" element={
+              <PrivateRoute>
+                <ScholarshipPortal />
+              </PrivateRoute>
+            } />
+
+            <Route path="/refunds-portal" element={
+              <PrivateRoute>
+                <MyRefunds />
               </PrivateRoute>
             } />
 
